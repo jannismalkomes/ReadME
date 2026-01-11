@@ -3,6 +3,20 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Play, Pause, SkipBack, SkipForward, Edit3, RotateCcw, RotateCw, User } from 'lucide-react';
 import { storage } from '@/api/storageClient';
+import { createPortal } from 'react-dom';
+
+function Popup({ children, className = '', style = {}, onClose = () => { } }) {
+    if (typeof document === 'undefined') return null;
+    return createPortal(
+        <>
+            <div className="fixed inset-0 z-40" onClick={onClose} />
+            <div className={`fixed ${className} z-50`} style={style} onClick={(e) => e.stopPropagation()}>
+                {children}
+            </div>
+        </>,
+        document.body
+    );
+}
 
 // Estimated characters per second at 1x speed (average speaking rate)
 const CHARS_PER_SECOND = 15;
@@ -41,6 +55,36 @@ export default function Player() {
     const utteranceRef = useRef(null);
     const currentChunkStart = useRef(0);
     const textDisplayRef = useRef(null);
+
+    // Refs and inline styles for accurate popup positioning when rendered via portal
+    const speedBtnRef = useRef(null);
+    const voiceBtnRef = useRef(null);
+    const [speedPopupStyle, setSpeedPopupStyle] = useState({});
+    const [voicePopupStyle, setVoicePopupStyle] = useState({});
+
+    const toggleSpeedPopup = () => {
+        if (!showSpeedPopup && speedBtnRef.current) {
+            const r = speedBtnRef.current.getBoundingClientRect();
+            const bottom = window.innerHeight - r.top + 8; // distance from bottom
+            const left = r.left + r.width / 2; // center horizontally on button
+            setSpeedPopupStyle({ left: `${left}px`, bottom: `${bottom}px`, transform: 'translateX(-50%)' });
+            setShowSpeedPopup(true);
+        } else {
+            setShowSpeedPopup(false);
+        }
+    };
+
+    const toggleVoicePopup = () => {
+        if (!showVoicePopup && voiceBtnRef.current) {
+            const r = voiceBtnRef.current.getBoundingClientRect();
+            const bottom = window.innerHeight - r.top + 8;
+            const left = r.left + r.width / 2;
+            setVoicePopupStyle({ left: `${left}px`, bottom: `${bottom}px`, transform: 'translateX(-50%)' });
+            setShowVoicePopup(true);
+        } else {
+            setShowVoicePopup(false);
+        }
+    };
 
     // Load available voices - find best male and female
     useEffect(() => {
@@ -324,7 +368,7 @@ export default function Player() {
     }
 
     return (
-        <div className="min-h-screen bg-black text-white flex flex-col overflow-hidden">
+        <div className="h-screen bg-black text-white flex flex-col overflow-hidden">
             {/* Header - Fixed at the top */}
             <div className="fixed top-0 left-0 right-0 bg-black z-10 flex items-center justify-between p-4 border-b border-zinc-900">
                 <button
@@ -348,7 +392,7 @@ export default function Player() {
             <div className="flex-1 mt-[64px] mb-[170px] overflow-hidden relative">
                 <div
                     ref={textDisplayRef}
-                    className="h-full flex flex-col justify-center px-6 py-4 sm:py-2 overflow-y-auto"
+                    className="h-full flex flex-col justify-center px-6 py-4 sm:py-2 overflow-hidden"
                 >
                     {book?.text ? (
                         <div className="text-center max-w-2xl mx-auto">
@@ -454,7 +498,8 @@ export default function Player() {
                 <div className="flex items-center justify-center gap-4">
                     {/* Speed button */}
                     <button
-                        onClick={() => setShowSpeedPopup(!showSpeedPopup)}
+                        ref={speedBtnRef}
+                        onClick={toggleSpeedPopup}
                         className="px-4 py-2 bg-zinc-900 rounded-full text-sm font-medium hover:bg-zinc-800 transition-colors min-w-[70px]"
                     >
                         {speechRate}x
@@ -462,7 +507,7 @@ export default function Player() {
 
                     {/* Speed Popup */}
                     {showSpeedPopup && (
-                        <div className="absolute bottom-20 bg-zinc-900 p-4 rounded-lg shadow-lg">
+                        <Popup style={speedPopupStyle} className="bg-zinc-800 text-white p-4 rounded-lg shadow-lg min-w-[140px] w-max" onClose={() => setShowSpeedPopup(false)}>
                             {[0.75, 1, 1.25, 1.5, 1.75, 2].map((speed) => (
                                 <button
                                     key={speed}
@@ -479,12 +524,13 @@ export default function Player() {
                                     {speed}x
                                 </button>
                             ))}
-                        </div>
+                        </Popup>
                     )}
 
                     {/* Voice button */}
                     <button
-                        onClick={() => setShowVoicePopup(!showVoicePopup)}
+                        ref={voiceBtnRef}
+                        onClick={toggleVoicePopup}
                         className="px-4 py-2 bg-zinc-900 rounded-full text-sm font-medium hover:bg-zinc-800 transition-colors flex items-center gap-2"
                     >
                         <User size={14} />
@@ -493,7 +539,7 @@ export default function Player() {
 
                     {/* Voice Popup */}
                     {showVoicePopup && (
-                        <div className="absolute bottom-20 bg-zinc-900 p-4 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                        <Popup style={voicePopupStyle} className="bg-zinc-800 text-white p-4 rounded-lg shadow-lg w-56 max-h-60 overflow-y-auto" onClose={() => setShowVoicePopup(false)}>
                             {allVoices.map((voice) => (
                                 <button
                                     key={voice.name}
@@ -517,7 +563,7 @@ export default function Player() {
                                     {voice.name} ({voice.lang})
                                 </button>
                             ))}
-                        </div>
+                        </Popup>
                     )}
                 </div>
             </div>

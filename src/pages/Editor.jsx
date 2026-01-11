@@ -131,11 +131,11 @@ export default function Editor() {
             )}
 
             {/* Text Editor */}
-            <div className="flex-1 p-4">
+            <div className="flex-1 p-4 flex flex-col">
                 <textarea
                     value={text}
                     onChange={handleTextChange}
-                    className="w-full h-full min-h-[70vh] bg-zinc-900 rounded-xl p-4 text-white resize-none focus:outline-none focus:ring-2 focus:ring-zinc-700 leading-relaxed"
+                    className="w-full flex-1 bg-zinc-900 rounded-xl p-4 text-white resize-none focus:outline-none focus:ring-2 focus:ring-zinc-700 leading-relaxed"
                     placeholder="Enter or paste text here..."
                 />
             </div>

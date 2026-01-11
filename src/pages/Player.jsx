@@ -34,6 +34,9 @@ export default function Player() {
     const [voiceGender, setVoiceGender] = useState('female'); // 'female' or 'male'
     const [femaleVoice, setFemaleVoice] = useState(null);
     const [maleVoice, setMaleVoice] = useState(null);
+    const [showSpeedPopup, setShowSpeedPopup] = useState(false);
+    const [showVoicePopup, setShowVoicePopup] = useState(false);
+    const [allVoices, setAllVoices] = useState([]);
 
     const utteranceRef = useRef(null);
     const currentChunkStart = useRef(0);
@@ -63,6 +66,21 @@ export default function Player() {
 
             setFemaleVoice(bestFemale);
             setMaleVoice(bestMale);
+        };
+
+        loadVoices();
+        speechSynthesis.onvoiceschanged = loadVoices;
+
+        return () => {
+            speechSynthesis.onvoiceschanged = null;
+        };
+    }, []);
+
+    // Load all available voices
+    useEffect(() => {
+        const loadVoices = () => {
+            const voices = speechSynthesis.getVoices();
+            setAllVoices(voices);
         };
 
         loadVoices();
@@ -306,9 +324,9 @@ export default function Player() {
     }
 
     return (
-        <div className="min-h-screen bg-black text-white flex flex-col">
-            {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-zinc-900">
+        <div className="min-h-screen bg-black text-white flex flex-col overflow-hidden">
+            {/* Header - Fixed at the top */}
+            <div className="fixed top-0 left-0 right-0 bg-black z-10 flex items-center justify-between p-4 border-b border-zinc-900">
                 <button
                     onClick={() => navigate('/')}
                     className="p-2 -ml-2 hover:bg-zinc-900 rounded-full transition-colors"
@@ -327,13 +345,10 @@ export default function Player() {
             </div>
 
             {/* Continuous Scroll Text Display */}
-            <Link
-                to={`/editor/${id}`}
-                className="flex-1 overflow-hidden cursor-pointer hover:bg-zinc-950/50 transition-colors relative"
-            >
+            <div className="flex-1 mt-[64px] mb-[170px] overflow-hidden relative">
                 <div
                     ref={textDisplayRef}
-                    className="h-full flex flex-col justify-center px-6 py-4"
+                    className="h-full flex flex-col justify-center px-6 py-4 sm:py-2 overflow-y-auto"
                 >
                     {book?.text ? (
                         <div className="text-center max-w-2xl mx-auto">
@@ -365,12 +380,10 @@ export default function Player() {
                 {/* Gradient overlays for fade effect */}
                 <div className="absolute top-0 left-0 right-0 h-16 bg-gradient-to-b from-black to-transparent pointer-events-none" />
                 <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-black to-transparent pointer-events-none" />
+            </div>
 
-                <p className="absolute bottom-2 left-0 right-0 text-xs text-zinc-600 text-center">Tap to edit text</p>
-            </Link>
-
-            {/* Progress Bar */}
-            <div className="px-6 py-2">
+            {/* Progress Bar - Fixed above controls */}
+            <div className="fixed bottom-[156px] left-0 right-0 bg-black z-10 px-6 py-2">
                 <div
                     className="h-1 bg-zinc-800 rounded-full cursor-pointer"
                     onClick={handleSeek}
@@ -386,8 +399,8 @@ export default function Player() {
                 </div>
             </div>
 
-            {/* Controls */}
-            <div className="px-4 pb-8">
+            {/* Controls - Fixed at the bottom */}
+            <div className="fixed bottom-0 left-0 right-0 bg-black px-4 pb-8">
                 {/* Main playback controls */}
                 <div className="flex items-center justify-center gap-4 mb-6">
                     {/* 15s backward */}
@@ -441,20 +454,71 @@ export default function Player() {
                 <div className="flex items-center justify-center gap-4">
                     {/* Speed button */}
                     <button
-                        onClick={cycleSpeed}
+                        onClick={() => setShowSpeedPopup(!showSpeedPopup)}
                         className="px-4 py-2 bg-zinc-900 rounded-full text-sm font-medium hover:bg-zinc-800 transition-colors min-w-[70px]"
                     >
                         {speechRate}x
                     </button>
 
-                    {/* Voice toggle button - Male/Female */}
+                    {/* Speed Popup */}
+                    {showSpeedPopup && (
+                        <div className="absolute bottom-20 bg-zinc-900 p-4 rounded-lg shadow-lg">
+                            {[0.75, 1, 1.25, 1.5, 1.75, 2].map((speed) => (
+                                <button
+                                    key={speed}
+                                    onClick={() => {
+                                        setSpeechRate(speed);
+                                        setShowSpeedPopup(false);
+                                        if (isPlaying && book) {
+                                            speakChunk(book.text, currentPosition);
+                                        }
+                                    }}
+                                    className={`block w-full text-left px-4 py-2 rounded-lg ${speed === speechRate ? 'bg-white text-black' : 'hover:bg-zinc-800'
+                                        }`}
+                                >
+                                    {speed}x
+                                </button>
+                            ))}
+                        </div>
+                    )}
+
+                    {/* Voice button */}
                     <button
-                        onClick={toggleVoiceGender}
+                        onClick={() => setShowVoicePopup(!showVoicePopup)}
                         className="px-4 py-2 bg-zinc-900 rounded-full text-sm font-medium hover:bg-zinc-800 transition-colors flex items-center gap-2"
                     >
                         <User size={14} />
                         <span>{voiceGender === 'female' ? 'Female' : 'Male'}</span>
                     </button>
+
+                    {/* Voice Popup */}
+                    {showVoicePopup && (
+                        <div className="absolute bottom-20 bg-zinc-900 p-4 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                            {allVoices.map((voice) => (
+                                <button
+                                    key={voice.name}
+                                    onClick={() => {
+                                        if (voiceGender === 'female') {
+                                            setFemaleVoice(voice);
+                                        } else {
+                                            setMaleVoice(voice);
+                                        }
+                                        setShowVoicePopup(false);
+                                        if (isPlaying && book) {
+                                            speakChunk(book.text, currentPosition);
+                                        }
+                                    }}
+                                    className={`block w-full text-left px-4 py-2 rounded-lg ${(voiceGender === 'female' && voice === femaleVoice) ||
+                                        (voiceGender === 'male' && voice === maleVoice)
+                                        ? 'bg-white text-black'
+                                        : 'hover:bg-zinc-800'
+                                        }`}
+                                >
+                                    {voice.name} ({voice.lang})
+                                </button>
+                            ))}
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

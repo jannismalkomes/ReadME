@@ -5,7 +5,7 @@
 | Version | App ID | App Name |
 |---------|--------|----------|
 | Free | `app.cleancoin.free` | CleanCoin |
-| Premium | `app.cleancoin.premium` | CleanCoin Premium |
+| Premium | `app.readme.premium` | CleanCoin Premium |
 
 ---
 
@@ -55,18 +55,18 @@ const IS_PREMIUM = true;
 Rename the folder:
 ```
 android/app/src/main/java/app/cleancoin/free/
-→ android/app/src/main/java/app/cleancoin/premium/
+→ android/app/src/main/java/app/readme/premium/
 ```
 
 Update `MainActivity.java`:
 ```java
-package app.cleancoin.premium;
+package app.readme.premium;
 ```
 
 Update `android/app/build.gradle`:
 ```groovy
-namespace = "app.cleancoin.premium"
-applicationId "app.cleancoin.premium"
+namespace = "app.readme.premium"
+applicationId "app.readme.premium"
 ```
 
 ### 3. Sync the project
@@ -88,7 +88,7 @@ npm run build && npx cap sync
 
 For iOS, update the Bundle Identifier in Xcode:
 - Free: `app.cleancoin.free`
-- Premium: `app.cleancoin.premium`
+- Premium: `app.readme.premium`
 
 1. Open Xcode (click **🍎 iOS** button)
 2. Select the **App** target

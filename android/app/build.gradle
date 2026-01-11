@@ -1,13 +1,13 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace = "app.cleancoin.premium"
+    namespace = "app.readme.premium"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "app.cleancoin.premium"
+        applicationId "app.readme.premium"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 5
+        versionCode 1
         versionName "1.0.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {

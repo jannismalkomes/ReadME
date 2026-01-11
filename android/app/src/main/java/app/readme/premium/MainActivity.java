@@ -1,4 +1,4 @@
-package app.cleancoin.premium;
+package app.readme.premium;
 
 import android.os.Bundle;
 import android.webkit.WebView;

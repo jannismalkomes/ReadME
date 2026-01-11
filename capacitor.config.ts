@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-    appId: 'app.pdfaudiobook',
+    appId: 'app.readme.premium',
     appName: 'PDF Audiobook',
     webDir: 'dist',
     android: {

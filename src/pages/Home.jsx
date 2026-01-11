@@ -61,7 +61,7 @@ export default function Home() {
                     <p className="text-sm">Tap + to import your first PDF</p>
                 </div>
             ) : (
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                     {books.map((book, index) => (
                         <motion.div
                             key={book.id}
@@ -73,7 +73,7 @@ export default function Home() {
                                 to={`/player/${book.id}`}
                                 className="block relative"
                             >
-                                <div className="bg-zinc-900 rounded-xl p-4 aspect-[3/4] flex flex-col border border-zinc-800 hover:border-zinc-700 transition-colors">
+                                <div className="bg-zinc-900 rounded-lg p-2 aspect-square flex flex-col border border-zinc-800 hover:border-zinc-700 transition-colors">
                                     {/* Menu Button */}
                                     <button
                                         onClick={(e) => toggleMenu(book.id, e)}
@@ -97,14 +97,14 @@ export default function Home() {
 
                                     {/* Book Icon */}
                                     <div className="flex-1 flex items-center justify-center">
-                                        <div className="w-16 h-20 bg-zinc-800 rounded flex items-center justify-center">
-                                            <BookOpen size={24} className="text-zinc-600" />
+                                        <div className="w-12 h-12 bg-zinc-800 rounded flex items-center justify-center">
+                                            <BookOpen size={18} className="text-zinc-600" />
                                         </div>
                                     </div>
 
                                     {/* Book Title */}
                                     <div className="mt-auto">
-                                        <h3 className="font-medium text-sm truncate">{book.title}</h3>
+                                        <h3 className="font-medium text-xs truncate">{book.title}</h3>
                                         <p className="text-xs text-zinc-500 mt-1">
                                             {new Date(book.createdAt).toLocaleDateString()}
                                         </p>

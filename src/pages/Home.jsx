@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, BookOpen, MoreVertical, Trash2 } from 'lucide-react';
+import { Plus, BookOpen, MoreVertical, Trash2, FileText } from 'lucide-react';
 import { storage } from '@/api/storageClient';
 
 export default function Home() {
@@ -37,6 +37,66 @@ export default function Home() {
         e.stopPropagation();
         e.preventDefault();
         setMenuOpen(menuOpen === id ? null : id);
+    };
+
+    // Hidden file input and handlers for uploading a cover image for an existing book
+    const fileInputRef = useRef(null);
+    const [coverTargetBookId, setCoverTargetBookId] = useState(null);
+
+    const handleAddCoverClick = (id, e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        setCoverTargetBookId(id);
+        // open file selector
+        fileInputRef.current?.click();
+        setMenuOpen(null);
+    };
+
+    const resizeImageFile = (file, targetWidth = 600) => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => {
+                const img = new Image();
+                img.onload = () => {
+                    const ratio = img.width / img.height || 1;
+                    const width = targetWidth;
+                    const height = Math.round(targetWidth / ratio);
+
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+                    resolve(dataUrl);
+                };
+                img.onerror = reject;
+                img.src = reader.result;
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+    };
+
+    const handleCoverSelected = async (e) => {
+        const file = e.target.files?.[0];
+        e.target.value = null; // reset for future selects
+        if (!file || !coverTargetBookId) return;
+
+        if (!file.type.startsWith('image/')) {
+            console.warn('Selected file is not an image');
+            return;
+        }
+
+        try {
+            const dataUrl = await resizeImageFile(file, 600);
+            await storage.books.update(coverTargetBookId, { thumbnail: dataUrl });
+            // Update UI
+            setBooks(prev => prev.map(b => b.id === coverTargetBookId ? { ...b, thumbnail: dataUrl } : b));
+            setCoverTargetBookId(null);
+        } catch (err) {
+            console.error('Failed to process cover image:', err);
+        }
     };
 
     // Calculate monthly progress
@@ -85,6 +145,28 @@ export default function Home() {
                                     {/* Dropdown Menu */}
                                     {menuOpen === book.id && (
                                         <div className="absolute top-10 right-2 bg-zinc-800 rounded-lg shadow-lg z-10 overflow-hidden">
+                                            <button
+                                                onClick={(e) => handleAddCoverClick(book.id, e)}
+                                                className="flex items-center gap-2 px-4 py-3 hover:bg-zinc-700 w-full text-left"
+                                            >
+                                                <FileText size={16} />
+                                                <span>Upload cover</span>
+                                            </button>
+                                            {book.thumbnail && (
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        e.preventDefault();
+                                                        storage.books.update(book.id, { thumbnail: null });
+                                                        setBooks(prev => prev.map(b => b.id === book.id ? { ...b, thumbnail: null } : b));
+                                                        setMenuOpen(null);
+                                                    }}
+                                                    className="flex items-center gap-2 px-4 py-3 hover:bg-zinc-700 w-full text-left"
+                                                >
+                                                    <Trash2 size={16} />
+                                                    <span>Remove cover</span>
+                                                </button>
+                                            )}
                                             <button
                                                 onClick={(e) => handleDeleteBook(book.id, e)}
                                                 className="flex items-center gap-2 px-4 py-3 text-red-500 hover:bg-zinc-700 w-full text-left"
@@ -137,6 +219,9 @@ export default function Home() {
             >
                 <Plus size={24} className="text-black" />
             </Link>
+
+            {/* Hidden file input for uploading covers */}
+            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleCoverSelected} />
 
             {/* Click outside to close menu */}
             {menuOpen && (

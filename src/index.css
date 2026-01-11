@@ -1,0 +1,67 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Safe area for mobile devices (notches, status bars) */
+#root {
+    min-height: 100vh;
+    padding-top: constant(safe-area-inset-top);
+    /* iOS 11.0-11.2 */
+    padding-top: env(safe-area-inset-top);
+    /* iOS 11.2+ */
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    background-color: #09090b;
+    color: #fafafa;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+        'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+        sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+/* Hide scrollbars but keep scroll functionality */
+*,
+html,
+body,
+#root {
+    -ms-overflow-style: none !important;
+    /* IE and Edge */
+    scrollbar-width: none !important;
+    /* Firefox */
+    -webkit-overflow-scrolling: touch;
+    /* Smooth scrolling on iOS */
+}
+
+*::-webkit-scrollbar,
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+#root::-webkit-scrollbar {
+    display: none !important;
+    /* Chrome, Safari, Opera, Android WebView */
+    width: 0 !important;
+    height: 0 !important;
+    background: transparent !important;
+}
+
+/* Additional Android WebView scrollbar hiding */
+::-webkit-scrollbar {
+    width: 0px !important;
+    height: 0px !important;
+    background: transparent !important;
+}
+
+::-webkit-scrollbar-thumb {
+    background: transparent !important;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent !important;
+}

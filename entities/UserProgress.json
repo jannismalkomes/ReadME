@@ -1,0 +1,20 @@
+{
+  "name": "UserProgress",
+  "type": "object",
+  "properties":
+    {
+      "start_date":
+        {
+          "type": "string",
+          "format": "date",
+          "description": "The date the user started their sobriety journey",
+        },
+      "collected_coins":
+        {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Array of milestone IDs that have been collected",
+        },
+    },
+  "required": ["start_date"],
+}

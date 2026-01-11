@@ -1,0 +1,211 @@
+{
+    "milestones": [
+        {
+            "id": "1-day",
+            "days": 1,
+            "name": "Day 1",
+            "description": "Your journey begins",
+            "coinFile": "coin_day_1.glb",
+            "color": "#cd7f32"
+        },
+        {
+            "id": "1-week",
+            "days": 7,
+            "name": "Week 1",
+            "description": "A full week of strength",
+            "coinFile": "coin_week_1_fox.glb",
+            "color": "#c0c0c0"
+        },
+        {
+            "id": "2-weeks",
+            "days": 14,
+            "name": "Week 2",
+            "description": "Building momentum",
+            "coinFile": "coin_week_2.glb",
+            "color": "#b8860b"
+        },
+        {
+            "id": "3-weeks",
+            "days": 21,
+            "name": "Week 3",
+            "description": "Three weeks strong",
+            "coinFile": "coin_week_3.glb",
+            "color": "#ffd700"
+        },
+        {
+            "id": "1-month",
+            "days": 30,
+            "name": "Month 1",
+            "description": "A milestone worth celebrating",
+            "coinFile": "coin_month_1.glb",
+            "color": "#e5e4e2"
+        },
+        {
+            "id": "3-months",
+            "days": 90,
+            "name": "Month 3",
+            "description": "A quarter year of freedom",
+            "coinFile": "coin_month_3.glb",
+            "color": "#7dd3fc"
+        },
+        {
+            "id": "6-months",
+            "days": 180,
+            "name": "Month 6",
+            "description": "Half a year of strength",
+            "coinFile": "coin_month_6.glb",
+            "color": "#a78bfa"
+        },
+        {
+            "id": "9-months",
+            "days": 270,
+            "name": "Month 9",
+            "description": "Three quarters of a year",
+            "coinFile": "coin_month_9.glb",
+            "color": "#f472b6"
+        },
+        {
+            "id": "1-year",
+            "days": 365,
+            "name": "Year 1",
+            "description": "A full year of freedom",
+            "coinFile": "coin_year_1.glb",
+            "color": "#50c878"
+        },
+        {
+            "id": "5-years",
+            "days": 1825,
+            "name": "Year 5",
+            "description": "Five years of triumph",
+            "coinFile": "coin_year_5.glb",
+            "color": "#ff6b6b"
+        },
+        {
+            "id": "10-years",
+            "days": 3650,
+            "name": "Year 10",
+            "description": "A decade of strength",
+            "coinFile": "coin_year_10.glb",
+            "color": "#9b59b6"
+        }
+    ],
+    "monthlyCoins": [
+        {
+            "id": "dec-2025",
+            "year": 2025,
+            "month": 12,
+            "name": "December 2025",
+            "description": "A full month of sobriety",
+            "coinFile": "coin_january_26.glb",
+            "color": "#4a90d9"
+        },
+        {
+            "id": "jan-2026",
+            "year": 2026,
+            "month": 1,
+            "name": "January 2026",
+            "description": "A full month of sobriety",
+            "coinFile": "coin_january_26.glb",
+            "color": "#4a90d9"
+        },
+        {
+            "id": "feb-2026",
+            "year": 2026,
+            "month": 2,
+            "name": "February 2026",
+            "description": "A full month of sobriety",
+            "coinFile": "coin_february_26.glb",
+            "color": "#d94a7b"
+        },
+        {
+            "id": "mar-2026",
+            "year": 2026,
+            "month": 3,
+            "name": "March 2026",
+            "description": "A full month of sobriety",
+            "coinFile": "coin_march_26.glb",
+            "color": "#4ad97b"
+        },
+        {
+            "id": "apr-2026",
+            "year": 2026,
+            "month": 4,
+            "name": "April 2026",
+            "description": "A full month of sobriety",
+            "coinFile": "coin_april_26.glb",
+            "color": "#d9d94a"
+        },
+        {
+            "id": "may-2026",
+            "year": 2026,
+            "month": 5,
+            "name": "May 2026",
+            "description": "A full month of sobriety",
+            "coinFile": "coin_may_26.glb",
+            "color": "#7b4ad9"
+        },
+        {
+            "id": "jun-2026",
+            "year": 2026,
+            "month": 6,
+            "name": "June 2026",
+            "description": "A full month of sobriety",
+            "coinFile": "coin_june_26.glb",
+            "color": "#4ad9d9"
+        },
+        {
+            "id": "jul-2026",
+            "year": 2026,
+            "month": 7,
+            "name": "July 2026",
+            "description": "A full month of sobriety",
+            "coinFile": "coin_july_26.glb",
+            "color": "#d9704a"
+        },
+        {
+            "id": "aug-2026",
+            "year": 2026,
+            "month": 8,
+            "name": "August 2026",
+            "description": "A full month of sobriety",
+            "coinFile": "coin_august_26.glb",
+            "color": "#4ad970"
+        },
+        {
+            "id": "sep-2026",
+            "year": 2026,
+            "month": 9,
+            "name": "September 2026",
+            "description": "A full month of sobriety",
+            "coinFile": "coin_september_26.glb",
+            "color": "#d94a4a"
+        },
+        {
+            "id": "oct-2026",
+            "year": 2026,
+            "month": 10,
+            "name": "October 2026",
+            "description": "A full month of sobriety",
+            "coinFile": "coin_october_26.glb",
+            "color": "#ff8c00"
+        },
+        {
+            "id": "nov-2026",
+            "year": 2026,
+            "month": 11,
+            "name": "November 2026",
+            "description": "A full month of sobriety",
+            "coinFile": "coin_november_26.glb",
+            "color": "#8b4513"
+        },
+        {
+            "id": "dec-2026",
+            "year": 2026,
+            "month": 12,
+            "name": "December 2026",
+            "description": "A full month of sobriety",
+            "coinFile": "coin_december_26.glb",
+            "color": "#1e90ff"
+        }
+    ]
+}

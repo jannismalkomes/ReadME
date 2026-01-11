@@ -1,0 +1,25 @@
+{
+    "VsCodeTaskButtons.showCounter": false,
+    "VsCodeTaskButtons.tasks": [
+        {
+            "label": "🚀 Web",
+            "task": "Start CleanCoin App",
+            "tooltip": "Start the CleanCoin development server"
+        },
+        {
+            "label": "🤖 Android",
+            "task": "Open Android Studio",
+            "tooltip": "Open project in Android Studio"
+        },
+        {
+            "label": "🍎 iOS",
+            "task": "Open Xcode",
+            "tooltip": "Open project in Xcode"
+        },
+        {
+            "label": "🔄 Sync",
+            "task": "Sync All Platforms",
+            "tooltip": "Build and sync to Android & iOS"
+        }
+    ]
+}

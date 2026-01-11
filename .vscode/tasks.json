@@ -1,0 +1,32 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Start CleanCoin App",
+			"type": "shell",
+			"command": "npm run dev",
+			"isBackground": true,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "Open Android Studio",
+			"type": "shell",
+			"command": "npm run android:open",
+			"problemMatcher": []
+		},
+		{
+			"label": "Open Xcode",
+			"type": "shell",
+			"command": "npm run ios:open",
+			"problemMatcher": []
+		},
+		{
+			"label": "Sync All Platforms",
+			"type": "shell",
+			"command": "npm run build && npx cap sync",
+			"problemMatcher": [],
+			"group": "build"
+		}
+	]
+}

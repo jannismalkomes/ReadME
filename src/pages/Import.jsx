@@ -39,6 +39,7 @@ export default function Import() {
         const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
 
         let fullText = '';
+        let thumbnail = null;
 
         for (let i = 1; i <= pdf.numPages; i++) {
             const page = await pdf.getPage(i);
@@ -47,9 +48,32 @@ export default function Import() {
                 .map(item => item.str)
                 .join(' ');
             fullText += pageText + '\n\n';
+
+            // Render first page to canvas as a thumbnail
+            if (i === 1) {
+                try {
+                    const viewport = page.getViewport({ scale: 1 });
+                    const targetWidth = 900; // high-res enough for cover cropping
+                    const scale = targetWidth / viewport.width;
+                    const scaledViewport = page.getViewport({ scale });
+
+                    const canvas = document.createElement('canvas');
+                    canvas.width = Math.round(scaledViewport.width);
+                    canvas.height = Math.round(scaledViewport.height);
+                    const ctx = canvas.getContext('2d');
+
+                    await page.render({ canvasContext: ctx, viewport: scaledViewport }).promise;
+
+                    // Convert to compressed JPEG data URL
+                    thumbnail = canvas.toDataURL('image/jpeg', 0.8);
+                } catch (e) {
+                    console.warn('Failed to render thumbnail for first page:', e);
+                    thumbnail = null;
+                }
+            }
         }
 
-        return fullText;
+        return { fullText, thumbnail };
     };
 
     const applyImportSettings = (text) => {
@@ -93,13 +117,13 @@ export default function Import() {
         setError(null);
 
         try {
-            // Extract text from PDF
-            const rawText = await extractTextFromPDF(selectedFile);
+            // Extract text and thumbnail from PDF
+            const { fullText: rawText, thumbnail } = await extractTextFromPDF(selectedFile);
 
             // Apply import settings
             const processedText = applyImportSettings(rawText);
 
-            // Create book entry
+            // Create book entry (include thumbnail if available)
             const title = selectedFile.name.replace('.pdf', '');
             await storage.books.create({
                 title,
@@ -107,6 +131,7 @@ export default function Import() {
                 text: processedText,
                 originalText: rawText,
                 importSettings,
+                thumbnail: thumbnail || null,
             });
 
             navigate('/');

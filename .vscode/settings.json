@@ -3,8 +3,8 @@
     "VsCodeTaskButtons.tasks": [
         {
             "label": "🚀 Web",
-            "task": "Start CleanCoin App",
-            "tooltip": "Start the CleanCoin development server"
+            "task": "Start ReadME App",
+            "tooltip": "Start the ReadME development server"
         },
         {
             "label": "🤖 Android",

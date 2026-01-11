@@ -95,19 +95,33 @@ export default function Home() {
                                         </div>
                                     )}
 
-                                    {/* Book Icon */}
-                                    <div className="flex-1 flex items-center justify-center">
-                                        <div className="w-12 h-12 bg-zinc-800 rounded flex items-center justify-center">
-                                            <BookOpen size={18} className="text-zinc-600" />
-                                        </div>
-                                    </div>
+                                    {/* Edge-to-edge cover with reserved bottom area for title */}
+                                    <div className="relative flex-1 w-full overflow-hidden rounded-t-lg">
+                                        {book.thumbnail ? (
+                                            <div className="absolute top-0 left-0 right-0 bottom-14 overflow-hidden">
+                                                <img src={book.thumbnail} alt={book.title} className="w-full h-full object-cover" />
+                                            </div>
+                                        ) : (
+                                            <div className="absolute top-0 left-0 right-0 bottom-14 bg-zinc-800 flex items-center justify-center">
+                                                <BookOpen size={30} className="text-zinc-600" />
+                                            </div>
+                                        )}
 
-                                    {/* Book Title */}
-                                    <div className="mt-auto">
-                                        <h3 className="font-medium text-xs truncate">{book.title}</h3>
-                                        <p className="text-xs text-zinc-500 mt-1">
-                                            {new Date(book.createdAt).toLocaleDateString()}
-                                        </p>
+                                        {/* Menu button z-index ensure it sits above the image */}
+                                        <button
+                                            onClick={(e) => toggleMenu(book.id, e)}
+                                            className="absolute top-2 right-2 p-2 rounded-full hover:bg-zinc-800 transition-colors z-10"
+                                        >
+                                            <MoreVertical size={16} className="text-zinc-500" />
+                                        </button>
+
+                                        {/* Title area */}
+                                        <div className="absolute left-3 right-3 bottom-3">
+                                            <h3 className="font-medium text-xs truncate">{book.title}</h3>
+                                            <p className="text-[11px] text-zinc-500 mt-1">
+                                                {new Date(book.createdAt).toLocaleDateString()}
+                                            </p>
+                                        </div>
                                     </div>
                                 </div>
                             </Link>

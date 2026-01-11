@@ -107,8 +107,8 @@ export default function Editor() {
                         onClick={handleSave}
                         disabled={!hasChanges || saving}
                         className={`p-2 rounded-full transition-colors ${hasChanges && !saving
-                                ? 'hover:bg-zinc-900 text-white'
-                                : 'text-zinc-600'
+                            ? 'hover:bg-zinc-900 text-white'
+                            : 'text-zinc-600'
                             }`}
                     >
                         {saving ? (

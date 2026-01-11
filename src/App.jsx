@@ -2,17 +2,18 @@ import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './Layout';
 import Home from './pages/Home';
-import Gallery from './pages/Gallery';
-import Settings from './pages/Settings';
+import Player from './pages/Player';
+import Import from './pages/Import';
+import Editor from './pages/Editor';
 
 function App() {
     return (
         <Layout>
             <Routes>
                 <Route path="/" element={<Home />} />
-                <Route path="/Home" element={<Home />} />
-                <Route path="/Gallery" element={<Gallery />} />
-                <Route path="/Settings" element={<Settings />} />
+                <Route path="/player/:id" element={<Player />} />
+                <Route path="/import" element={<Import />} />
+                <Route path="/editor/:id" element={<Editor />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
         </Layout>

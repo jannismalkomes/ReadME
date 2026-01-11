@@ -1,34 +1,34 @@
 import React from 'react';
 
 export default function Layout({ children }) {
-    return (
-        <div className="min-h-screen bg-zinc-950 text-white">
-            <style>{`
+  return (
+    <div className="min-h-screen bg-black text-white">
+      <style>{`
         :root {
-          --background: 0 0% 3.9%;
-          --foreground: 0 0% 98%;
+          --background: 0 0% 0%;
+          --foreground: 0 0% 100%;
           --card: 0 0% 7%;
-          --card-foreground: 0 0% 98%;
+          --card-foreground: 0 0% 100%;
           --popover: 0 0% 7%;
-          --popover-foreground: 0 0% 98%;
-          --primary: 38 92% 50%;
-          --primary-foreground: 0 0% 100%;
+          --popover-foreground: 0 0% 100%;
+          --primary: 0 0% 100%;
+          --primary-foreground: 0 0% 0%;
           --secondary: 0 0% 14.9%;
-          --secondary-foreground: 0 0% 98%;
+          --secondary-foreground: 0 0% 100%;
           --muted: 0 0% 14.9%;
           --muted-foreground: 0 0% 63.9%;
           --accent: 0 0% 14.9%;
-          --accent-foreground: 0 0% 98%;
+          --accent-foreground: 0 0% 100%;
           --destructive: 0 62.8% 30.6%;
-          --destructive-foreground: 0 0% 98%;
+          --destructive-foreground: 0 0% 100%;
           --border: 0 0% 14.9%;
           --input: 0 0% 14.9%;
-          --ring: 38 92% 50%;
+          --ring: 0 0% 100%;
         }
         
         body {
-          background-color: hsl(0 0% 3.9%);
-          color: hsl(0 0% 98%);
+          background-color: #000;
+          color: #fff;
         }
         
         /* Custom scrollbar for dark theme */
@@ -38,25 +38,19 @@ export default function Layout({ children }) {
         }
         
         ::-webkit-scrollbar-track {
-          background: hsl(0 0% 7%);
+          background: #000;
         }
         
         ::-webkit-scrollbar-thumb {
-          background: hsl(0 0% 20%);
+          background: #333;
           border-radius: 4px;
         }
         
         ::-webkit-scrollbar-thumb:hover {
-          background: hsl(0 0% 30%);
-        }
-
-        /* Date input styling for dark mode */
-        input[type="date"]::-webkit-calendar-picker-indicator {
-          filter: invert(1);
-          cursor: pointer;
+          background: #444;
         }
       `}</style>
-            {children}
-        </div>
-    );
+      {children}
+    </div>
+  );
 }

@@ -1,21 +1,16 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
-// ============================================
-// SET THIS TO MATCH src/config/appVersion.js
-// ============================================
-const IS_PREMIUM = true;
-
 const config: CapacitorConfig = {
-    appId: IS_PREMIUM ? 'app.cleancoin.premium' : 'app.cleancoin.free',
-    appName: IS_PREMIUM ? 'CleanCoin' : 'CleanCoin Free',
+    appId: 'app.pdfaudiobook',
+    appName: 'PDF Audiobook',
     webDir: 'dist',
     android: {
-        backgroundColor: '#09090b'
+        backgroundColor: '#000000'
     },
     plugins: {
         StatusBar: {
             style: 'dark',
-            backgroundColor: '#09090b'
+            backgroundColor: '#000000'
         }
     }
 };

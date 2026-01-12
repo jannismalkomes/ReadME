@@ -153,7 +153,7 @@ export default function Import() {
     return (
         <div className="min-h-screen bg-black text-white">
             {/* Header */}
-            <div className="flex items-center p-4 border-b border-zinc-900">
+            <div className="flex items-center p-4 border-b border-zinc-900 safe-top fixed top-0 left-0 right-0 bg-black z-10">
                 <button
                     onClick={() => navigate('/')}
                     className="p-2 -ml-2 hover:bg-zinc-900 rounded-full transition-colors"
@@ -163,7 +163,7 @@ export default function Import() {
                 <h1 className="text-lg font-medium ml-4">Import PDF</h1>
             </div>
 
-            <div className="p-6">
+            <div className="p-6 mt-[96px] overflow-y-auto">
                 {/* File Upload Area */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}

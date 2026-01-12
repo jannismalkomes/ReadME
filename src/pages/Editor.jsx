@@ -133,7 +133,10 @@ export default function Editor() {
             )}
 
             {/* Text Editor */}
-            <div className="flex-1 p-4 flex flex-col safe-area">
+            <div
+                className="flex-1 p-4 flex flex-col safe-area"
+                style={{ marginTop: 'calc(64px + env(safe-area-inset-top, 0px))' }}
+            >
                 <textarea
                     value={text}
                     onChange={handleTextChange}

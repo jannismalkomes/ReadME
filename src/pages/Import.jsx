@@ -153,17 +153,22 @@ export default function Import() {
     return (
         <div className="min-h-screen bg-black text-white">
             {/* Header */}
-            <div className="flex items-center p-4 border-b border-zinc-900 safe-top fixed top-0 left-0 right-0 bg-black z-10">
-                <button
-                    onClick={() => navigate('/')}
-                    className="p-2 -ml-2 hover:bg-zinc-900 rounded-full transition-colors"
-                >
-                    <ArrowLeft size={24} />
-                </button>
-                <h1 className="text-lg font-medium ml-4">Import PDF</h1>
+            <div className="fixed top-0 left-0 right-0 bg-black z-10 safe-top">
+                <div className="flex items-center justify-between p-4 border-b border-zinc-900">
+                    <button
+                        onClick={() => navigate('/')}
+                        className="p-2 -ml-2 hover:bg-zinc-900 rounded-full transition-colors"
+                    >
+                        <ArrowLeft size={24} />
+                    </button>
+                    <h1 className="text-lg font-medium truncate px-4 flex-1 text-center">Import PDF</h1>
+                </div>
             </div>
 
-            <div className="p-6 mt-[96px] overflow-y-auto">
+            <div
+                className="p-6 overflow-y-auto"
+                style={{ marginTop: 'calc(64px + env(safe-area-inset-top, 0px))' }}
+            >
                 {/* File Upload Area */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
@@ -180,19 +185,19 @@ export default function Import() {
 
                     <button
                         onClick={() => fileInputRef.current?.click()}
-                        className="w-full border-2 border-dashed border-zinc-700 rounded-xl p-8 flex flex-col items-center justify-center hover:border-zinc-500 transition-colors"
+                        className="w-full border-2 border-dashed border-zinc-700 rounded-xl p-4 flex flex-col items-center justify-center hover:border-zinc-500 transition-colors"
                     >
                         {selectedFile ? (
                             <>
-                                <FileText size={48} className="text-white mb-4" />
-                                <p className="text-lg font-medium">{selectedFile.name}</p>
-                                <p className="text-sm text-zinc-500 mt-2">Tap to change file</p>
+                                <FileText size={36} className="text-white mb-2" />
+                                <p className="text-md font-medium">{selectedFile.name}</p>
+                                <p className="text-sm text-zinc-500 mt-1">Tap to change file</p>
                             </>
                         ) : (
                             <>
-                                <Upload size={48} className="text-zinc-600 mb-4" />
-                                <p className="text-lg text-zinc-400">Select PDF file</p>
-                                <p className="text-sm text-zinc-600 mt-2">Tap to browse</p>
+                                <Upload size={36} className="text-zinc-600 mb-2" />
+                                <p className="text-md text-zinc-400">Select PDF file</p>
+                                <p className="text-sm text-zinc-600 mt-1">Tap to browse</p>
                             </>
                         )}
                     </button>

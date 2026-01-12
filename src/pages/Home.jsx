@@ -105,8 +105,8 @@ export default function Home() {
     return (
         <div className="min-h-screen bg-black text-white p-6 pb-24">
             {/* Header */}
-            <div className="flex items-center justify-between mb-8">
-                <h1 className="text-2xl font-semibold">Library</h1>
+            <div className="flex items-center justify-between mb-8 safe-top fixed top-0 left-0 right-0 bg-black z-10">
+                <h1 className="text-2xl font-semibold px-6 py-4">Library</h1>
             </div>
 
             {/* Books Grid */}
@@ -121,7 +121,7 @@ export default function Home() {
                     <p className="text-sm">Tap + to import your first PDF</p>
                 </div>
             ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 pt-[64px] overflow-y-auto">
                     {books.map((book, index) => (
                         <motion.div
                             key={book.id}

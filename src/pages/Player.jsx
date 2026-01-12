@@ -114,7 +114,7 @@ export default function Player() {
     useEffect(() => {
         loadBook();
         return () => {
-            TextToSpeech.stop().catch(() => {});
+            TextToSpeech.stop().catch(() => { });
         };
     }, [id]);
 
@@ -383,27 +383,29 @@ export default function Player() {
 
     return (
         <div className="h-screen bg-black text-white flex flex-col overflow-hidden">
-            {/* Header - Fixed at the top */}
-            <div className="fixed top-0 left-0 right-0 bg-black z-10 flex items-center justify-between p-4 border-b border-zinc-900">
-                <button
-                    onClick={() => navigate('/')}
-                    className="p-2 -ml-2 hover:bg-zinc-900 rounded-full transition-colors"
-                >
-                    <ArrowLeft size={24} />
-                </button>
-                <h1 className="text-lg font-medium truncate px-4 flex-1 text-center">
-                    {book?.title}
-                </h1>
-                <Link
-                    to={`/editor/${id}`}
-                    className="p-2 hover:bg-zinc-900 rounded-full transition-colors"
-                >
-                    <Edit3 size={20} />
-                </Link>
+            {/* Header - Fixed at the top with safe area */}
+            <div className="fixed top-0 left-0 right-0 bg-black z-10 safe-top">
+                <div className="flex items-center justify-between p-4 border-b border-zinc-900">
+                    <button
+                        onClick={() => navigate('/')}
+                        className="p-2 -ml-2 hover:bg-zinc-900 rounded-full transition-colors"
+                    >
+                        <ArrowLeft size={24} />
+                    </button>
+                    <h1 className="text-lg font-medium truncate px-4 flex-1 text-center">
+                        {book?.title}
+                    </h1>
+                    <Link
+                        to={`/editor/${id}`}
+                        className="p-2 hover:bg-zinc-900 rounded-full transition-colors"
+                    >
+                        <Edit3 size={20} />
+                    </Link>
+                </div>
             </div>
 
             {/* Continuous Scroll Text Display */}
-            <div className="flex-1 mt-[64px] mb-[170px] overflow-hidden relative">
+            <div className="flex-1 mt-[64px] mb-[170px] overflow-hidden relative safe-area">
                 <div
                     ref={textDisplayRef}
                     className="h-full flex flex-col justify-center px-6 py-4 sm:py-2 overflow-hidden"

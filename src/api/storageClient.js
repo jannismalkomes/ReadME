@@ -43,6 +43,7 @@ const SETTINGS_KEY = 'pdf_audiobook_settings';
  *   updatedAt: string,
  *   currentPosition: number, // character position for playback
  *   lastVoiceURI: string, // last selected voice for this book
+ *   lastSpeechRate: number, // last selected playback speed for this book
  *   importSettings: {
  *     removePageNumbers: boolean,
  *     removeHeaders: boolean,

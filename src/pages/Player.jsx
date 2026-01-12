@@ -187,7 +187,11 @@ export default function Player() {
             }
             setBook(bookData);
             setCurrentPosition(bookData.currentPosition || 0);
-            updateDisplayedText(bookData.text, bookData.currentPosition || 0);
+
+            // Restore last speech rate for this book
+            if (bookData.lastSpeechRate) {
+                setSpeechRate(bookData.lastSpeechRate);
+            }
         } catch (error) {
             console.error('Error loading book:', error);
             navigate('/');
@@ -393,6 +397,14 @@ export default function Player() {
         speechRateRef.current = speed;
         setSpeechRate(speed);
         setShowSpeedPopup(false);
+
+        // Save the selected speed to the book
+        await storage.books.update(id, { lastSpeechRate: speed });
+
+        // Update local book state
+        if (book) {
+            setBook({ ...book, lastSpeechRate: speed });
+        }
 
         // If currently playing, restart with new speed
         if (isPlaying && book) {

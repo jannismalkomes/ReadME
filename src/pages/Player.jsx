@@ -8,13 +8,23 @@ import { TextToSpeech } from '@capacitor-community/text-to-speech';
 
 function Popup({ children, className = '', style = {}, onClose = () => { } }) {
     if (typeof document === 'undefined') return null;
+
+    const handleBackdropClick = (e) => {
+        // Only close if clicking directly on the backdrop, not its children
+        if (e.target === e.currentTarget) {
+            onClose();
+        }
+    };
+
     return createPortal(
-        <>
-            <div className="fixed inset-0 z-40" onClick={onClose} />
-            <div className={`fixed ${className} z-50`} style={style} onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-40" onClick={handleBackdropClick}>
+            <div
+                className={`fixed ${className} z-50`}
+                style={style}
+            >
                 {children}
             </div>
-        </>,
+        </div>,
         document.body
     );
 }
@@ -45,6 +55,8 @@ export default function Player() {
     const isPlayingRef = useRef(false);
     const currentPositionRef = useRef(0);
     const bookRef = useRef(null);
+    const speechRateRef = useRef(speechRate);
+    const selectedVoiceRef = useRef(selectedVoice);
 
     // Refs and inline styles for accurate popup positioning when rendered via portal
     const speedBtnRef = useRef(null);
@@ -119,6 +131,14 @@ export default function Player() {
         bookRef.current = book;
     }, [book]);
 
+    useEffect(() => {
+        speechRateRef.current = speechRate;
+    }, [speechRate]);
+
+    useEffect(() => {
+        selectedVoiceRef.current = selectedVoice;
+    }, [selectedVoice]);
+
     const loadBook = async () => {
         try {
             const bookData = await storage.books.get(id);
@@ -175,17 +195,21 @@ export default function Player() {
             setCurrentPosition(startPosition);
             updateDisplayedText(text, startPosition);
 
+            // Use refs to get current values (not stale closure values)
+            const currentRate = speechRateRef.current;
+            const currentVoice = selectedVoiceRef.current;
+
             const options = {
                 text: textToSpeak,
-                lang: selectedVoice?.lang || 'en-US',
-                rate: speechRate,
+                lang: currentVoice?.lang || 'en-US',
+                rate: currentRate,
                 pitch: 1.0,
                 volume: 1.0,
                 category: 'playback',
             };
 
-            if (selectedVoice?.voiceURI) {
-                options.voice = selectedVoice.voiceURI;
+            if (currentVoice?.voiceURI) {
+                options.voice = currentVoice.voiceURI;
             }
 
             await TextToSpeech.speak(options);
@@ -208,7 +232,7 @@ export default function Player() {
             }
             setIsPlaying(false);
         }
-    }, [speechRate, id, selectedVoice]);
+    }, [id]);
 
     const togglePlayPause = async () => {
         if (!book) return;
@@ -295,23 +319,28 @@ export default function Player() {
     };
 
     const handleSpeedChange = async (speed) => {
+        // Update the ref immediately so speakChunk uses it
+        speechRateRef.current = speed;
         setSpeechRate(speed);
         setShowSpeedPopup(false);
 
+        // If currently playing, restart with new speed
         if (isPlaying && book) {
             await TextToSpeech.stop();
-            // Small delay to ensure stop completes
-            setTimeout(() => speakChunk(book.text, currentPosition), 100);
+            speakChunk(book.text, currentPositionRef.current);
         }
     };
 
     const handleVoiceChange = async (voice) => {
+        // Update the ref immediately so speakChunk uses it
+        selectedVoiceRef.current = voice;
         setSelectedVoice(voice);
         setShowVoicePopup(false);
 
+        // If currently playing, restart with new voice
         if (isPlaying && book) {
             await TextToSpeech.stop();
-            setTimeout(() => speakChunk(book.text, currentPosition), 100);
+            speakChunk(book.text, currentPositionRef.current);
         }
     };
 
@@ -496,8 +525,8 @@ export default function Player() {
                             {[0.75, 1, 1.25, 1.5, 1.75, 2].map((speed) => (
                                 <button
                                     key={speed}
-                                    onClick={() => handleSpeedChange(speed)}
-                                    className={`block w-full text-left px-4 py-2 rounded-lg ${speed === speechRate ? 'bg-white text-black' : 'hover:bg-zinc-700'}`}
+                                    onClick={(e) => { e.stopPropagation(); handleSpeedChange(speed); }}
+                                    className={`block w-full text-left px-4 py-2 rounded-lg active:bg-zinc-600 ${speed === speechRate ? 'bg-white text-black' : 'hover:bg-zinc-700'}`}
                                 >
                                     {speed}x
                                 </button>
@@ -524,8 +553,8 @@ export default function Player() {
                                 allVoices.map((voice, index) => (
                                     <button
                                         key={voice.voiceURI || index}
-                                        onClick={() => handleVoiceChange(voice)}
-                                        className={`block w-full text-left px-4 py-2 rounded-lg ${selectedVoice?.voiceURI === voice.voiceURI ? 'bg-white text-black' : 'hover:bg-zinc-700'}`}
+                                        onClick={(e) => { e.stopPropagation(); handleVoiceChange(voice); }}
+                                        className={`block w-full text-left px-4 py-2 rounded-lg active:bg-zinc-600 ${selectedVoice?.voiceURI === voice.voiceURI ? 'bg-white text-black' : 'hover:bg-zinc-700'}`}
                                     >
                                         <div className="truncate">{voice.name || 'Unknown'}</div>
                                         <div className="text-xs opacity-60">{voice.lang}</div>

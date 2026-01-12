@@ -87,38 +87,40 @@ export default function Editor() {
     return (
         <div className="min-h-screen bg-black text-white flex flex-col">
             {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-zinc-900 safe-top">
-                <button
-                    onClick={handleBack}
-                    className="p-2 -ml-2 hover:bg-zinc-900 rounded-full transition-colors"
-                >
-                    <ArrowLeft size={24} />
-                </button>
-                <h1 className="text-lg font-medium truncate px-4">Edit Text</h1>
-                <div className="flex items-center gap-2">
+            <div className="fixed top-0 left-0 right-0 bg-black z-10 safe-top">
+                <div className="flex items-center justify-between p-4 border-b border-zinc-900">
                     <button
-                        onClick={() => setShowResetConfirm(true)}
-                        className="p-2 hover:bg-zinc-900 rounded-full transition-colors"
-                        title="Reset to original"
+                        onClick={handleBack}
+                        className="p-2 -ml-2 hover:bg-zinc-900 rounded-full transition-colors"
                     >
-                        <RotateCcw size={20} />
+                        <ArrowLeft size={24} />
                     </button>
-                    <button
-                        onClick={handleSave}
-                        disabled={!hasChanges || saving}
-                        className={`p-2 rounded-full transition-colors ${hasChanges && !saving
-                            ? 'hover:bg-zinc-900 text-white'
-                            : 'text-zinc-600'
-                            }`}
-                    >
-                        {saving ? (
-                            <div className="w-5 h-5 border-2 border-zinc-500 border-t-white rounded-full animate-spin" />
-                        ) : saved ? (
-                            <Check size={20} className="text-green-500" />
-                        ) : (
-                            <Save size={20} />
-                        )}
-                    </button>
+                    <h1 className="text-lg font-medium truncate px-4 flex-1 text-center">Edit Text</h1>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => setShowResetConfirm(true)}
+                            className="p-2 hover:bg-zinc-900 rounded-full transition-colors"
+                            title="Reset to original"
+                        >
+                            <RotateCcw size={20} />
+                        </button>
+                        <button
+                            onClick={handleSave}
+                            disabled={!hasChanges || saving}
+                            className={`p-2 rounded-full transition-colors ${hasChanges && !saving
+                                ? 'hover:bg-zinc-900 text-white'
+                                : 'text-zinc-600'
+                                }`}
+                        >
+                            {saving ? (
+                                <div className="w-5 h-5 border-2 border-zinc-500 border-t-white rounded-full animate-spin" />
+                            ) : saved ? (
+                                <Check size={20} className="text-green-500" />
+                            ) : (
+                                <Save size={20} />
+                            )}
+                        </button>
+                    </div>
                 </div>
             </div>
 

@@ -483,7 +483,7 @@ export default function Player() {
     return (
         <div className="h-screen bg-black text-white flex flex-col overflow-hidden">
             {/* Header - Fixed at the top with safe area */}
-            <div className="fixed top-0 left-0 right-0 bg-black z-10 safe-top">
+            <div className="fixed top-0 left-0 right-0 bg-black z-10" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
                 <div className="flex items-center justify-between p-4 border-b border-zinc-900">
                     <button
                         onClick={() => navigate('/')}
@@ -504,7 +504,7 @@ export default function Player() {
             </div>
 
             {/* Continuous Scroll Text Display */}
-            <div className="flex-1 mt-[64px] mb-[170px] overflow-hidden relative safe-area">
+            <div className="flex-1 mt-[64px] mb-[170px] overflow-hidden relative" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
                 <div
                     ref={textDisplayRef}
                     className="h-full flex flex-col justify-center px-6 py-4 sm:py-2 overflow-hidden"

@@ -29,6 +29,7 @@ const generateId = () => {
 };
 
 const STORAGE_KEY = 'pdf_audiobook_books';
+const SETTINGS_KEY = 'pdf_audiobook_settings';
 
 /**
  * Book entity structure:
@@ -41,6 +42,7 @@ const STORAGE_KEY = 'pdf_audiobook_books';
  *   createdAt: string,
  *   updatedAt: string,
  *   currentPosition: number, // character position for playback
+ *   lastVoiceURI: string, // last selected voice for this book
  *   importSettings: {
  *     removePageNumbers: boolean,
  *     removeHeaders: boolean,
@@ -93,6 +95,46 @@ export const storage = {
             const filtered = books.filter(book => book.id !== id);
             saveStoredData(STORAGE_KEY, filtered);
             return true;
+        },
+    },
+
+    settings: {
+        get: async () => {
+            const settings = localStorage.getItem(SETTINGS_KEY);
+            return settings ? JSON.parse(settings) : {
+                favoriteVoices: [], // Array of voice URIs
+                defaultLanguages: {}, // Map of bookId -> language code
+            };
+        },
+
+        update: async (updates) => {
+            const current = await storage.settings.get();
+            const updated = { ...current, ...updates };
+            localStorage.setItem(SETTINGS_KEY, JSON.stringify(updated));
+            return updated;
+        },
+
+        addFavoriteVoice: async (voiceURI) => {
+            const settings = await storage.settings.get();
+            if (!settings.favoriteVoices.includes(voiceURI)) {
+                settings.favoriteVoices.push(voiceURI);
+                await storage.settings.update(settings);
+            }
+            return settings;
+        },
+
+        removeFavoriteVoice: async (voiceURI) => {
+            const settings = await storage.settings.get();
+            settings.favoriteVoices = settings.favoriteVoices.filter(v => v !== voiceURI);
+            await storage.settings.update(settings);
+            return settings;
+        },
+
+        setBookDefaultLanguage: async (bookId, languageCode) => {
+            const settings = await storage.settings.get();
+            settings.defaultLanguages[bookId] = languageCode;
+            await storage.settings.update(settings);
+            return settings;
         },
     },
 };

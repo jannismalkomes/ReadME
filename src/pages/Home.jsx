@@ -1,14 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Link, useNavigate } from 'react-router-dom';
-import { Plus, BookOpen, MoreVertical, Trash2, FileText } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Plus, BookOpen, MoreVertical, Trash2, FileText, Settings } from 'lucide-react';
 import { storage } from '@/api/storageClient';
 
 export default function Home() {
     const [books, setBooks] = useState([]);
     const [loading, setLoading] = useState(true);
     const [menuOpen, setMenuOpen] = useState(null);
-    const navigate = useNavigate();
 
     useEffect(() => {
         loadBooks();
@@ -107,6 +106,12 @@ export default function Home() {
             {/* Header */}
             <div className="flex items-center justify-between mb-8 safe-top fixed top-0 left-0 right-0 bg-black z-10">
                 <h1 className="text-2xl font-semibold px-6 py-4">Library</h1>
+                <Link
+                    to="/settings"
+                    className="p-2 mr-4 hover:bg-zinc-900 rounded-full transition-colors"
+                >
+                    <Settings size={20} />
+                </Link>
             </div>
 
             {/* Books Grid */}

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Play, Pause, SkipBack, SkipForward, Edit3, RotateCcw, RotateCw, User } from 'lucide-react';
+import { ArrowLeft, Play, Pause, SkipBack, SkipForward, Edit3, RotateCcw, RotateCw, User, Star } from 'lucide-react';
 import { storage } from '@/api/storageClient';
 import { createPortal } from 'react-dom';
 import { TextToSpeech } from '@capacitor-community/text-to-speech';
@@ -50,6 +50,7 @@ export default function Player() {
     const [showSpeedPopup, setShowSpeedPopup] = useState(false);
     const [showVoicePopup, setShowVoicePopup] = useState(false);
     const [allVoices, setAllVoices] = useState([]);
+    const [favoriteVoices, setFavoriteVoices] = useState([]);
 
     const textDisplayRef = useRef(null);
     const isPlayingRef = useRef(false);
@@ -92,15 +93,52 @@ export default function Player() {
     useEffect(() => {
         const loadVoices = async () => {
             try {
+                console.log('Loading voices from TextToSpeech API...');
                 const { voices } = await TextToSpeech.getSupportedVoices();
+                console.log('Received voices:', voices?.length || 0, voices);
+
+                // Use all available voices (the TTS system handles availability)
                 setAllVoices(voices || []);
 
-                // Find a good default English voice
-                const englishVoices = voices.filter(v => v.lang?.startsWith('en'));
-                if (englishVoices.length > 0) {
-                    setSelectedVoice(englishVoices[0]);
-                } else if (voices.length > 0) {
-                    setSelectedVoice(voices[0]);
+                // Load favorite voices from settings
+                const settings = await storage.settings.get();
+                setFavoriteVoices(settings.favoriteVoices || []);
+
+                let defaultVoice = null;
+
+                // First priority: Check if book has a last used voice
+                const currentBook = bookRef.current;
+                if (currentBook?.lastVoiceURI && voices?.length > 0) {
+                    const savedVoice = voices.find(v => v.voiceURI === currentBook.lastVoiceURI);
+                    if (savedVoice) {
+                        defaultVoice = savedVoice;
+                        console.log('Using saved voice for this book:', savedVoice.name);
+                    }
+                }
+
+                // Second priority: Get book's default language
+                if (!defaultVoice) {
+                    const defaultLang = settings.defaultLanguages?.[id];
+                    if (defaultLang && voices?.length > 0) {
+                        const langVoices = voices.filter(v => v.lang === defaultLang);
+                        if (langVoices.length > 0) {
+                            defaultVoice = langVoices[0];
+                        }
+                    }
+                }
+
+                // Fall back to English if no language-specific voice found
+                if (!defaultVoice && voices?.length > 0) {
+                    const englishVoices = voices.filter(v => v.lang?.startsWith('en'));
+                    if (englishVoices.length > 0) {
+                        defaultVoice = englishVoices[0];
+                    } else {
+                        defaultVoice = voices[0];
+                    }
+                }
+
+                if (defaultVoice) {
+                    setSelectedVoice(defaultVoice);
                 }
             } catch (error) {
                 console.error('Error loading voices:', error);
@@ -108,8 +146,9 @@ export default function Player() {
             }
         };
 
+        // Load voices immediately when component mounts
         loadVoices();
-    }, []);
+    }, [id]);
 
     useEffect(() => {
         loadBook();
@@ -368,6 +407,14 @@ export default function Player() {
         setSelectedVoice(voice);
         setShowVoicePopup(false);
 
+        // Save the selected voice to the book
+        await storage.books.update(id, { lastVoiceURI: voice.voiceURI });
+
+        // Update local book state
+        if (book) {
+            setBook({ ...book, lastVoiceURI: voice.voiceURI });
+        }
+
         // If currently playing, restart with new voice
         if (isPlaying && book) {
             await TextToSpeech.stop();
@@ -393,6 +440,15 @@ export default function Player() {
     };
 
     const textSegments = getTextSegments();
+
+    // Sort voices with favorites first
+    const getSortedVoices = () => {
+        const favorites = allVoices.filter(v => favoriteVoices.includes(v.voiceURI));
+        const others = allVoices.filter(v => !favoriteVoices.includes(v.voiceURI));
+        return [...favorites, ...others];
+    };
+
+    const sortedVoices = getSortedVoices();
 
     // Get display name for voice
     const getVoiceDisplayName = () => {
@@ -583,16 +639,22 @@ export default function Player() {
                             {allVoices.length === 0 ? (
                                 <p className="text-zinc-400 text-sm px-4 py-2">No voices available. Using system default.</p>
                             ) : (
-                                allVoices.map((voice, index) => (
-                                    <button
-                                        key={voice.voiceURI || index}
-                                        onClick={(e) => { e.stopPropagation(); handleVoiceChange(voice); }}
-                                        className={`block w-full text-left px-4 py-2 rounded-lg active:bg-zinc-600 ${selectedVoice?.voiceURI === voice.voiceURI ? 'bg-white text-black' : 'hover:bg-zinc-700'}`}
-                                    >
-                                        <div className="truncate">{voice.name || 'Unknown'}</div>
-                                        <div className="text-xs opacity-60">{voice.lang}</div>
-                                    </button>
-                                ))
+                                sortedVoices.map((voice, index) => {
+                                    const isFavorite = favoriteVoices.includes(voice.voiceURI);
+                                    return (
+                                        <button
+                                            key={voice.voiceURI || index}
+                                            onClick={(e) => { e.stopPropagation(); handleVoiceChange(voice); }}
+                                            className={`block w-full text-left px-4 py-2 rounded-lg active:bg-zinc-600 ${selectedVoice?.voiceURI === voice.voiceURI ? 'bg-white text-black' : 'hover:bg-zinc-700'}`}
+                                        >
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex-1 truncate">{voice.name || 'Unknown'}</div>
+                                                {isFavorite && <Star size={14} className="ml-2 fill-white" />}
+                                            </div>
+                                            <div className="text-xs opacity-60">{voice.lang}</div>
+                                        </button>
+                                    );
+                                })
                             )}
                         </Popup>
                     )}

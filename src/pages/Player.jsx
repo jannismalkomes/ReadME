@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { ArrowLeft, Play, Pause, SkipBack, SkipForward, Edit3, RotateCcw, RotateCw, User } from 'lucide-react';
 import { storage } from '@/api/storageClient';
 import { createPortal } from 'react-dom';
+import { TextToSpeech } from '@capacitor-community/text-to-speech';
 
 function Popup({ children, className = '', style = {}, onClose = () => { } }) {
     if (typeof document === 'undefined') return null;
@@ -21,19 +22,9 @@ function Popup({ children, className = '', style = {}, onClose = () => { } }) {
 // Estimated characters per second at 1x speed (average speaking rate)
 const CHARS_PER_SECOND = 15;
 // Maximum chunk size to avoid speech synthesis issues with large texts
-const MAX_CHUNK_SIZE = 5000;
+const MAX_CHUNK_SIZE = 4000;
 // Context size for displaying text around current position
 const TEXT_CONTEXT_CHARS = 800;
-
-// High-quality voice preferences (in order of priority)
-const FEMALE_VOICE_PREFERENCES = [
-    'Samantha', 'Karen', 'Moira', 'Tessa', 'Fiona', 'Victoria', 'Allison',
-    'Ava', 'Susan', 'Zoe', 'Kate', 'Serena', 'Female', 'Google UK English Female'
-];
-const MALE_VOICE_PREFERENCES = [
-    'Daniel', 'Alex', 'Tom', 'Oliver', 'James', 'Fred', 'Lee',
-    'Aaron', 'Gordon', 'Male', 'Google UK English Male'
-];
 
 export default function Player() {
     const { id } = useParams();
@@ -45,16 +36,15 @@ export default function Player() {
     const [currentSentenceStart, setCurrentSentenceStart] = useState(0);
     const [currentSentenceEnd, setCurrentSentenceEnd] = useState(0);
     const [speechRate, setSpeechRate] = useState(1);
-    const [voiceGender, setVoiceGender] = useState('female'); // 'female' or 'male'
-    const [femaleVoice, setFemaleVoice] = useState(null);
-    const [maleVoice, setMaleVoice] = useState(null);
+    const [selectedVoice, setSelectedVoice] = useState(null);
     const [showSpeedPopup, setShowSpeedPopup] = useState(false);
     const [showVoicePopup, setShowVoicePopup] = useState(false);
     const [allVoices, setAllVoices] = useState([]);
 
-    const utteranceRef = useRef(null);
-    const currentChunkStart = useRef(0);
     const textDisplayRef = useRef(null);
+    const isPlayingRef = useRef(false);
+    const currentPositionRef = useRef(0);
+    const bookRef = useRef(null);
 
     // Refs and inline styles for accurate popup positioning when rendered via portal
     const speedBtnRef = useRef(null);
@@ -65,8 +55,8 @@ export default function Player() {
     const toggleSpeedPopup = () => {
         if (!showSpeedPopup && speedBtnRef.current) {
             const r = speedBtnRef.current.getBoundingClientRect();
-            const bottom = window.innerHeight - r.top + 8; // distance from bottom
-            const left = r.left + r.width / 2; // center horizontally on button
+            const bottom = window.innerHeight - r.top + 8;
+            const left = r.left + r.width / 2;
             setSpeedPopupStyle({ left: `${left}px`, bottom: `${bottom}px`, transform: 'translateX(-50%)' });
             setShowSpeedPopup(true);
         } else {
@@ -86,61 +76,48 @@ export default function Player() {
         }
     };
 
-    // Load available voices - find best male and female
+    // Load available voices from Capacitor TTS
     useEffect(() => {
-        const loadVoices = () => {
-            const voices = speechSynthesis.getVoices();
-            const englishVoices = voices.filter(v => v.lang.startsWith('en'));
+        const loadVoices = async () => {
+            try {
+                const { voices } = await TextToSpeech.getSupportedVoices();
+                setAllVoices(voices || []);
 
-            // Find best female voice
-            let bestFemale = null;
-            for (const pref of FEMALE_VOICE_PREFERENCES) {
-                bestFemale = englishVoices.find(v => v.name.includes(pref));
-                if (bestFemale) break;
+                // Find a good default English voice
+                const englishVoices = voices.filter(v => v.lang?.startsWith('en'));
+                if (englishVoices.length > 0) {
+                    setSelectedVoice(englishVoices[0]);
+                } else if (voices.length > 0) {
+                    setSelectedVoice(voices[0]);
+                }
+            } catch (error) {
+                console.error('Error loading voices:', error);
+                // Fallback: TTS will use system default
             }
-            if (!bestFemale) bestFemale = englishVoices[0];
-
-            // Find best male voice
-            let bestMale = null;
-            for (const pref of MALE_VOICE_PREFERENCES) {
-                bestMale = englishVoices.find(v => v.name.includes(pref));
-                if (bestMale) break;
-            }
-            if (!bestMale) bestMale = englishVoices[1] || englishVoices[0];
-
-            setFemaleVoice(bestFemale);
-            setMaleVoice(bestMale);
         };
 
         loadVoices();
-        speechSynthesis.onvoiceschanged = loadVoices;
-
-        return () => {
-            speechSynthesis.onvoiceschanged = null;
-        };
-    }, []);
-
-    // Load all available voices
-    useEffect(() => {
-        const loadVoices = () => {
-            const voices = speechSynthesis.getVoices();
-            setAllVoices(voices);
-        };
-
-        loadVoices();
-        speechSynthesis.onvoiceschanged = loadVoices;
-
-        return () => {
-            speechSynthesis.onvoiceschanged = null;
-        };
     }, []);
 
     useEffect(() => {
         loadBook();
         return () => {
-            speechSynthesis.cancel();
+            TextToSpeech.stop().catch(() => {});
         };
     }, [id]);
+
+    // Keep refs in sync
+    useEffect(() => {
+        isPlayingRef.current = isPlaying;
+    }, [isPlaying]);
+
+    useEffect(() => {
+        currentPositionRef.current = currentPosition;
+    }, [currentPosition]);
+
+    useEffect(() => {
+        bookRef.current = book;
+    }, [book]);
 
     const loadBook = async () => {
         try {
@@ -183,10 +160,8 @@ export default function Player() {
         setCurrentSentenceEnd(sentenceEnd);
     };
 
-    const speakChunk = useCallback((text, startPosition = 0) => {
-        speechSynthesis.cancel();
-
-        // Get a chunk of text to speak (to avoid issues with large documents)
+    const speakChunk = useCallback(async (text, startPosition = 0) => {
+        // Get a chunk of text to speak
         const chunkEnd = Math.min(startPosition + MAX_CHUNK_SIZE, text.length);
         const textToSpeak = text.slice(startPosition, chunkEnd);
 
@@ -195,54 +170,51 @@ export default function Player() {
             return;
         }
 
-        currentChunkStart.current = startPosition;
+        try {
+            setIsPlaying(true);
+            setCurrentPosition(startPosition);
+            updateDisplayedText(text, startPosition);
 
-        const utterance = new SpeechSynthesisUtterance(textToSpeak);
-        utterance.rate = speechRate;
-        utterance.pitch = 1.0;
-        utterance.lang = 'en-US';
+            const options = {
+                text: textToSpeak,
+                lang: selectedVoice?.lang || 'en-US',
+                rate: speechRate,
+                pitch: 1.0,
+                volume: 1.0,
+                category: 'playback',
+            };
 
-        // Use the selected voice based on gender
-        const selectedVoice = voiceGender === 'female' ? femaleVoice : maleVoice;
-        if (selectedVoice) {
-            utterance.voice = selectedVoice;
-        }
-
-        utterance.onboundary = (event) => {
-            if (event.name === 'word') {
-                const charIndex = startPosition + event.charIndex;
-                setCurrentPosition(charIndex);
-                updateDisplayedText(text, charIndex);
+            if (selectedVoice?.voiceURI) {
+                options.voice = selectedVoice.voiceURI;
             }
-        };
 
-        utterance.onend = () => {
-            // If there's more text, continue with next chunk
-            if (chunkEnd < text.length) {
+            await TextToSpeech.speak(options);
+
+            // After speaking, update position and continue if needed
+            const newPosition = chunkEnd;
+            setCurrentPosition(newPosition);
+            updateDisplayedText(text, newPosition);
+            storage.books.update(id, { currentPosition: newPosition });
+
+            // If there's more text and we're still supposed to be playing, continue
+            if (chunkEnd < text.length && isPlayingRef.current) {
                 speakChunk(text, chunkEnd);
             } else {
                 setIsPlaying(false);
-                storage.books.update(id, { currentPosition: text.length });
             }
-        };
-
-        utterance.onerror = (event) => {
-            if (event.error !== 'canceled' && event.error !== 'interrupted') {
-                console.error('Speech error:', event.error);
-                setIsPlaying(false);
+        } catch (error) {
+            if (error.message !== 'stopped') {
+                console.error('Speech error:', error);
             }
-        };
+            setIsPlaying(false);
+        }
+    }, [speechRate, id, selectedVoice]);
 
-        utteranceRef.current = utterance;
-        speechSynthesis.speak(utterance);
-        setIsPlaying(true);
-    }, [speechRate, id, voiceGender, femaleVoice, maleVoice]);
-
-    const togglePlayPause = () => {
+    const togglePlayPause = async () => {
         if (!book) return;
 
         if (isPlaying) {
-            speechSynthesis.cancel();
+            await TextToSpeech.stop();
             setIsPlaying(false);
             storage.books.update(id, { currentPosition });
         } else {
@@ -251,57 +223,61 @@ export default function Player() {
     };
 
     // Jump by approximately 15 seconds worth of text
-    const jump15SecondsForward = () => {
+    const jump15SecondsForward = async () => {
         if (!book) return;
         const charsToJump = Math.floor(CHARS_PER_SECOND * 15 * speechRate);
         const newPosition = Math.min(currentPosition + charsToJump, book.text.length - 1);
         setCurrentPosition(newPosition);
         updateDisplayedText(book.text, newPosition);
+        storage.books.update(id, { currentPosition: newPosition });
 
         if (isPlaying) {
+            await TextToSpeech.stop();
             speakChunk(book.text, newPosition);
         }
-        storage.books.update(id, { currentPosition: newPosition });
     };
 
-    const jump15SecondsBackward = () => {
+    const jump15SecondsBackward = async () => {
         if (!book) return;
         const charsToJump = Math.floor(CHARS_PER_SECOND * 15 * speechRate);
         const newPosition = Math.max(currentPosition - charsToJump, 0);
         setCurrentPosition(newPosition);
         updateDisplayedText(book.text, newPosition);
+        storage.books.update(id, { currentPosition: newPosition });
 
         if (isPlaying) {
+            await TextToSpeech.stop();
             speakChunk(book.text, newPosition);
         }
-        storage.books.update(id, { currentPosition: newPosition });
     };
 
-    const skipForward = () => {
+    const skipForward = async () => {
         if (!book) return;
         const newPosition = Math.min(currentPosition + 500, book.text.length - 1);
         setCurrentPosition(newPosition);
         updateDisplayedText(book.text, newPosition);
+        storage.books.update(id, { currentPosition: newPosition });
 
         if (isPlaying) {
+            await TextToSpeech.stop();
             speakChunk(book.text, newPosition);
         }
-        storage.books.update(id, { currentPosition: newPosition });
     };
 
-    const skipBackward = () => {
+    const skipBackward = async () => {
         if (!book) return;
         const newPosition = Math.max(currentPosition - 500, 0);
         setCurrentPosition(newPosition);
         updateDisplayedText(book.text, newPosition);
+        storage.books.update(id, { currentPosition: newPosition });
 
         if (isPlaying) {
+            await TextToSpeech.stop();
             speakChunk(book.text, newPosition);
         }
-        storage.books.update(id, { currentPosition: newPosition });
     };
 
-    const handleSeek = (e) => {
+    const handleSeek = async (e) => {
         if (!book) return;
         const rect = e.currentTarget.getBoundingClientRect();
         const x = e.clientX - rect.left;
@@ -310,32 +286,31 @@ export default function Player() {
 
         setCurrentPosition(newPosition);
         updateDisplayedText(book.text, newPosition);
+        storage.books.update(id, { currentPosition: newPosition });
 
         if (isPlaying) {
+            await TextToSpeech.stop();
             speakChunk(book.text, newPosition);
         }
-        storage.books.update(id, { currentPosition: newPosition });
     };
 
-    const cycleSpeed = () => {
-        const speeds = [0.75, 1, 1.25, 1.5, 1.75, 2];
-        const currentIndex = speeds.indexOf(speechRate);
-        const nextIndex = (currentIndex + 1) % speeds.length;
-        const newSpeed = speeds[nextIndex];
-        setSpeechRate(newSpeed);
+    const handleSpeedChange = async (speed) => {
+        setSpeechRate(speed);
+        setShowSpeedPopup(false);
 
-        // If playing, restart with new speed
         if (isPlaying && book) {
-            speakChunk(book.text, currentPosition);
+            await TextToSpeech.stop();
+            // Small delay to ensure stop completes
+            setTimeout(() => speakChunk(book.text, currentPosition), 100);
         }
     };
 
-    const toggleVoiceGender = () => {
-        const newGender = voiceGender === 'female' ? 'male' : 'female';
-        setVoiceGender(newGender);
+    const handleVoiceChange = async (voice) => {
+        setSelectedVoice(voice);
+        setShowVoicePopup(false);
 
-        // If playing, restart with new voice
         if (isPlaying && book) {
+            await TextToSpeech.stop();
             setTimeout(() => speakChunk(book.text, currentPosition), 100);
         }
     };
@@ -358,6 +333,16 @@ export default function Player() {
     };
 
     const textSegments = getTextSegments();
+
+    // Get display name for voice
+    const getVoiceDisplayName = () => {
+        if (selectedVoice?.name) {
+            return selectedVoice.name.length > 12
+                ? selectedVoice.name.substring(0, 12) + '...'
+                : selectedVoice.name;
+        }
+        return 'Default';
+    };
 
     if (loading) {
         return (
@@ -511,15 +496,8 @@ export default function Player() {
                             {[0.75, 1, 1.25, 1.5, 1.75, 2].map((speed) => (
                                 <button
                                     key={speed}
-                                    onClick={() => {
-                                        setSpeechRate(speed);
-                                        setShowSpeedPopup(false);
-                                        if (isPlaying && book) {
-                                            speakChunk(book.text, currentPosition);
-                                        }
-                                    }}
-                                    className={`block w-full text-left px-4 py-2 rounded-lg ${speed === speechRate ? 'bg-white text-black' : 'hover:bg-zinc-800'
-                                        }`}
+                                    onClick={() => handleSpeedChange(speed)}
+                                    className={`block w-full text-left px-4 py-2 rounded-lg ${speed === speechRate ? 'bg-white text-black' : 'hover:bg-zinc-700'}`}
                                 >
                                     {speed}x
                                 </button>
@@ -534,35 +512,26 @@ export default function Player() {
                         className="px-4 py-2 bg-zinc-900 rounded-full text-sm font-medium hover:bg-zinc-800 transition-colors flex items-center gap-2"
                     >
                         <User size={14} />
-                        <span>{voiceGender === 'female' ? 'Female' : 'Male'}</span>
+                        <span>{getVoiceDisplayName()}</span>
                     </button>
 
                     {/* Voice Popup */}
                     {showVoicePopup && (
-                        <Popup style={voicePopupStyle} className="bg-zinc-800 text-white p-4 rounded-lg shadow-lg w-56 max-h-60 overflow-y-auto" onClose={() => setShowVoicePopup(false)}>
-                            {allVoices.map((voice) => (
-                                <button
-                                    key={voice.name}
-                                    onClick={() => {
-                                        if (voiceGender === 'female') {
-                                            setFemaleVoice(voice);
-                                        } else {
-                                            setMaleVoice(voice);
-                                        }
-                                        setShowVoicePopup(false);
-                                        if (isPlaying && book) {
-                                            speakChunk(book.text, currentPosition);
-                                        }
-                                    }}
-                                    className={`block w-full text-left px-4 py-2 rounded-lg ${(voiceGender === 'female' && voice === femaleVoice) ||
-                                        (voiceGender === 'male' && voice === maleVoice)
-                                        ? 'bg-white text-black'
-                                        : 'hover:bg-zinc-800'
-                                        }`}
-                                >
-                                    {voice.name} ({voice.lang})
-                                </button>
-                            ))}
+                        <Popup style={voicePopupStyle} className="bg-zinc-800 text-white p-4 rounded-lg shadow-lg w-64 max-h-60 overflow-y-auto" onClose={() => setShowVoicePopup(false)}>
+                            {allVoices.length === 0 ? (
+                                <p className="text-zinc-400 text-sm px-4 py-2">No voices available. Using system default.</p>
+                            ) : (
+                                allVoices.map((voice, index) => (
+                                    <button
+                                        key={voice.voiceURI || index}
+                                        onClick={() => handleVoiceChange(voice)}
+                                        className={`block w-full text-left px-4 py-2 rounded-lg ${selectedVoice?.voiceURI === voice.voiceURI ? 'bg-white text-black' : 'hover:bg-zinc-700'}`}
+                                    >
+                                        <div className="truncate">{voice.name || 'Unknown'}</div>
+                                        <div className="text-xs opacity-60">{voice.lang}</div>
+                                    </button>
+                                ))
+                            )}
                         </Popup>
                     )}
                 </div>

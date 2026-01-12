@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
     appId: 'app.readme.premium',
-    appName: 'PDF Audiobook',
+    appName: 'ReadME',
     webDir: 'dist',
     android: {
         backgroundColor: '#000000'

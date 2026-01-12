@@ -30,7 +30,7 @@ function Popup({ children, className = '', style = {}, onClose = () => { } }) {
 }
 
 // Estimated characters per second at 1x speed (average speaking rate)
-const CHARS_PER_SECOND = 15;
+const CHARS_PER_SECOND = 20;
 // Maximum chunk size to avoid speech synthesis issues with large texts
 const MAX_CHUNK_SIZE = 4000;
 // Context size for displaying text around current position
@@ -159,33 +159,57 @@ export default function Player() {
 
     const updateDisplayedText = (text, position) => {
         // Find current sentence boundaries
-        let sentenceStart = text.lastIndexOf('.', position - 1);
-        sentenceStart = sentenceStart === -1 ? 0 : sentenceStart + 1;
+        // Look backwards from current position to find sentence start
+        let sentenceStart = 0;
+        for (let i = position - 1; i >= 0; i--) {
+            const char = text[i];
+            if (char === '.' || char === '?' || char === '!') {
+                // Skip whitespace after punctuation
+                sentenceStart = i + 1;
+                while (sentenceStart < text.length && /\s/.test(text[sentenceStart])) {
+                    sentenceStart++;
+                }
+                break;
+            }
+        }
 
-        // Also check for other sentence terminators
-        const questionMark = text.lastIndexOf('?', position - 1);
-        const exclamation = text.lastIndexOf('!', position - 1);
-        sentenceStart = Math.max(sentenceStart, questionMark + 1, exclamation + 1);
-
-        let sentenceEnd = text.indexOf('.', position);
-        const questionEnd = text.indexOf('?', position);
-        const exclamationEnd = text.indexOf('!', position);
-
-        if (sentenceEnd === -1) sentenceEnd = text.length;
-        if (questionEnd !== -1 && questionEnd < sentenceEnd) sentenceEnd = questionEnd;
-        if (exclamationEnd !== -1 && exclamationEnd < sentenceEnd) sentenceEnd = exclamationEnd;
-        sentenceEnd = sentenceEnd + 1;
+        // Look forwards from current position to find sentence end
+        let sentenceEnd = text.length;
+        for (let i = position; i < text.length; i++) {
+            const char = text[i];
+            if (char === '.' || char === '?' || char === '!') {
+                sentenceEnd = i + 1;
+                break;
+            }
+        }
 
         setCurrentSentenceStart(sentenceStart);
         setCurrentSentenceEnd(sentenceEnd);
     };
 
-    const speakChunk = useCallback(async (text, startPosition = 0) => {
-        // Get a chunk of text to speak
-        const chunkEnd = Math.min(startPosition + MAX_CHUNK_SIZE, text.length);
-        const textToSpeak = text.slice(startPosition, chunkEnd);
+    const findNextSentenceEnd = (text, startPos) => {
+        // Find the end of the current sentence
+        for (let i = startPos; i < text.length; i++) {
+            const char = text[i];
+            if (char === '.' || char === '?' || char === '!') {
+                return i + 1;
+            }
+        }
+        return text.length;
+    };
 
-        if (!textToSpeak.trim()) {
+    const speakChunk = useCallback(async (text, startPosition = 0) => {
+        // Find the end of the current sentence
+        let sentenceEnd = findNextSentenceEnd(text, startPosition);
+
+        // Make sure we don't exceed MAX_CHUNK_SIZE for very long sentences
+        if (sentenceEnd - startPosition > MAX_CHUNK_SIZE) {
+            sentenceEnd = Math.min(startPosition + MAX_CHUNK_SIZE, text.length);
+        }
+
+        const textToSpeak = text.slice(startPosition, sentenceEnd).trim();
+
+        if (!textToSpeak) {
             setIsPlaying(false);
             return;
         }
@@ -214,15 +238,22 @@ export default function Player() {
 
             await TextToSpeech.speak(options);
 
-            // After speaking, update position and continue if needed
-            const newPosition = chunkEnd;
-            setCurrentPosition(newPosition);
-            updateDisplayedText(text, newPosition);
-            storage.books.update(id, { currentPosition: newPosition });
+            // After speaking this sentence, move to the next one
+            const newPosition = sentenceEnd;
+
+            // Skip whitespace after sentence
+            let nextPosition = newPosition;
+            while (nextPosition < text.length && /\s/.test(text[nextPosition])) {
+                nextPosition++;
+            }
+
+            setCurrentPosition(nextPosition);
+            updateDisplayedText(text, nextPosition);
+            storage.books.update(id, { currentPosition: nextPosition });
 
             // If there's more text and we're still supposed to be playing, continue
-            if (chunkEnd < text.length && isPlayingRef.current) {
-                speakChunk(text, chunkEnd);
+            if (nextPosition < text.length && isPlayingRef.current) {
+                speakChunk(text, nextPosition);
             } else {
                 setIsPlaying(false);
             }

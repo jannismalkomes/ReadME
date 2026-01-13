@@ -52,12 +52,13 @@ export default function Player() {
     const [allVoices, setAllVoices] = useState([]);
     const [favoriteVoices, setFavoriteVoices] = useState([]);
 
-    const textDisplayRef = useRef(null);
     const isPlayingRef = useRef(false);
     const currentPositionRef = useRef(0);
     const bookRef = useRef(null);
     const speechRateRef = useRef(speechRate);
     const selectedVoiceRef = useRef(selectedVoice);
+    const lastTouchY = useRef(null);
+    const accumulatedDelta = useRef(0);
 
     // Refs and inline styles for accurate popup positioning when rendered via portal
     const speedBtnRef = useRef(null);
@@ -453,6 +454,133 @@ export default function Player() {
 
     const textSegments = getTextSegments();
 
+    // Find previous sentence start position
+    const findPreviousSentenceStart = (text, fromPosition) => {
+        // Go back past the current sentence start to find the previous sentence
+        let pos = fromPosition - 1;
+
+        // Skip whitespace going backwards
+        while (pos > 0 && /\s/.test(text[pos])) {
+            pos--;
+        }
+
+        // Skip past the previous sentence's content to find its start
+        // First, skip to end of previous sentence (the punctuation)
+        while (pos > 0 && !'.?!'.includes(text[pos])) {
+            pos--;
+        }
+
+        // Now we're at punctuation, skip it and any whitespace to find sentence start
+        if (pos > 0) {
+            pos--; // Skip the punctuation
+            while (pos > 0 && !'.?!'.includes(text[pos])) {
+                pos--;
+            }
+            // Move forward past punctuation and whitespace
+            if (pos > 0) pos++;
+            while (pos < text.length && /\s/.test(text[pos])) {
+                pos++;
+            }
+        } else {
+            pos = 0;
+        }
+
+        return pos;
+    };
+
+    // Find next sentence start position
+    const findNextSentenceStart = (text, fromPosition) => {
+        // Find end of current sentence
+        let pos = fromPosition;
+        while (pos < text.length && !'.?!'.includes(text[pos])) {
+            pos++;
+        }
+        // Skip punctuation
+        if (pos < text.length) pos++;
+        // Skip whitespace
+        while (pos < text.length && /\s/.test(text[pos])) {
+            pos++;
+        }
+        return Math.min(pos, text.length - 1);
+    };
+
+    // Navigate to previous sentence
+    const goToPreviousSentence = async () => {
+        if (!book || currentSentenceStart === 0) return;
+
+        const newPosition = findPreviousSentenceStart(book.text, currentSentenceStart);
+
+        setCurrentPosition(newPosition);
+        updateDisplayedText(book.text, newPosition);
+        storage.books.update(id, { currentPosition: newPosition });
+
+        if (isPlaying) {
+            await TextToSpeech.stop();
+            speakChunk(book.text, newPosition);
+        }
+    };
+
+    // Navigate to next sentence
+    const goToNextSentence = async () => {
+        if (!book || currentSentenceEnd >= book.text.length) return;
+
+        const newPosition = findNextSentenceStart(book.text, currentSentenceStart);
+
+        setCurrentPosition(newPosition);
+        updateDisplayedText(book.text, newPosition);
+        storage.books.update(id, { currentPosition: newPosition });
+
+        if (isPlaying) {
+            await TextToSpeech.stop();
+            speakChunk(book.text, newPosition);
+        }
+    };
+
+    // Touch gesture handlers for sentence navigation
+    const SWIPE_THRESHOLD = 20; // pixels needed to trigger a sentence skip
+
+    const handleTouchStart = (e) => {
+        lastTouchY.current = e.touches[0].clientY;
+        accumulatedDelta.current = 0;
+    };
+
+    const handleTouchMove = (e) => {
+        if (lastTouchY.current === null) return;
+
+        const currentY = e.touches[0].clientY;
+        const delta = lastTouchY.current - currentY; // positive = swipe up
+        accumulatedDelta.current += delta;
+        lastTouchY.current = currentY;
+
+        // Check if we've accumulated enough movement to skip a sentence
+        if (accumulatedDelta.current > SWIPE_THRESHOLD) {
+            goToNextSentence();
+            accumulatedDelta.current = 0;
+        } else if (accumulatedDelta.current < -SWIPE_THRESHOLD) {
+            goToPreviousSentence();
+            accumulatedDelta.current = 0;
+        }
+    };
+
+    const handleTouchEnd = () => {
+        lastTouchY.current = null;
+        accumulatedDelta.current = 0;
+    };
+
+    // Mouse wheel handler for desktop
+    const handleWheel = (e) => {
+        e.preventDefault();
+        accumulatedDelta.current += e.deltaY;
+
+        if (accumulatedDelta.current > 15) {
+            goToNextSentence();
+            accumulatedDelta.current = 0;
+        } else if (accumulatedDelta.current < -15) {
+            goToPreviousSentence();
+            accumulatedDelta.current = 0;
+        }
+    };
+
     // Sort voices with favorites first
     const getSortedVoices = () => {
         const favorites = allVoices.filter(v => favoriteVoices.includes(v.voiceURI));
@@ -504,11 +632,15 @@ export default function Player() {
             </div>
 
             {/* Continuous Scroll Text Display */}
-            <div className="flex-1 mt-[64px] mb-[170px] overflow-hidden relative" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-                <div
-                    ref={textDisplayRef}
-                    className="h-full flex flex-col justify-center px-6 py-4 sm:py-2 overflow-hidden"
-                >
+            <div
+                className="flex-1 mt-[64px] mb-[170px] overflow-hidden relative"
+                style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
+                onWheel={handleWheel}
+            >
+                <div className="h-full flex flex-col justify-center px-6 py-4 sm:py-2 overflow-hidden">
                     {book?.text ? (
                         <div className="text-center max-w-2xl mx-auto">
                             {/* Text before current sentence */}
@@ -523,7 +655,7 @@ export default function Player() {
                                 animate={{ opacity: 1 }}
                                 className="text-xl leading-relaxed text-white font-medium py-3"
                             >
-                                {textSegments.current || 'Start playing to see text'}
+                                {textSegments.current || 'Swipe to navigate sentences'}
                             </motion.p>
 
                             {/* Text after current sentence */}

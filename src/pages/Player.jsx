@@ -64,6 +64,7 @@ export default function Player() {
     const momentumFrame = useRef(null);
     const textAreaRef = useRef(null);
     const saveTimeout = useRef(null);
+    const wheelEndTimeout = useRef(null);
 
     // Refs and inline styles for accurate popup positioning when rendered via portal
     const speedBtnRef = useRef(null);
@@ -165,6 +166,9 @@ export default function Player() {
             }
             if (saveTimeout.current) {
                 clearTimeout(saveTimeout.current);
+            }
+            if (wheelEndTimeout.current) {
+                clearTimeout(wheelEndTimeout.current);
             }
         };
     }, [id]);
@@ -523,10 +527,37 @@ export default function Player() {
         }, 300);
     };
 
+    // Track if we're currently scrolling to pause/resume speech
+    const isScrolling = useRef(false);
+    const wasPlayingBeforeScroll = useRef(false);
+
+    // Stop speech when scrolling starts
+    const onScrollStart = async () => {
+        if (!isScrolling.current && isPlaying) {
+            isScrolling.current = true;
+            wasPlayingBeforeScroll.current = true;
+            await TextToSpeech.stop();
+            setIsPlaying(false);
+        } else if (!isScrolling.current) {
+            isScrolling.current = true;
+            wasPlayingBeforeScroll.current = false;
+        }
+    };
+
+    // Resume speech from new position when scrolling ends
+    const onScrollEnd = () => {
+        if (isScrolling.current && wasPlayingBeforeScroll.current && book) {
+            const pos = currentPositionRef.current;
+            speakChunk(book.text, pos);
+        }
+        isScrolling.current = false;
+    };
+
     // Navigate to previous sentence
     const goToPreviousSentence = () => {
         if (!book || currentSentenceStart === 0) return;
 
+        onScrollStart();
         const newPosition = findPreviousSentenceStart(book.text, currentSentenceStart);
 
         setCurrentPosition(newPosition);
@@ -538,6 +569,7 @@ export default function Player() {
     const goToNextSentence = () => {
         if (!book || currentSentenceEnd >= book.text.length) return;
 
+        onScrollStart();
         const newPosition = findNextSentenceStart(book.text, currentSentenceStart);
 
         setCurrentPosition(newPosition);
@@ -553,8 +585,10 @@ export default function Player() {
     // Store navigation functions in refs so touch handlers can access latest versions
     const goToNextSentenceRef = useRef(null);
     const goToPreviousSentenceRef = useRef(null);
+    const onScrollEndRef = useRef(null);
     goToNextSentenceRef.current = goToNextSentence;
     goToPreviousSentenceRef.current = goToPreviousSentence;
+    onScrollEndRef.current = onScrollEnd;
 
     // Attach touch listeners with { passive: false } for Android compatibility
     useEffect(() => {
@@ -631,10 +665,15 @@ export default function Player() {
                         momentumFrame.current = requestAnimationFrame(momentumLoop);
                     } else {
                         momentumFrame.current = null;
+                        // Momentum ended - resume playback if needed
+                        onScrollEndRef.current?.();
                     }
                 };
 
                 momentumFrame.current = requestAnimationFrame(momentumLoop);
+            } else {
+                // No momentum - resume playback immediately
+                onScrollEndRef.current?.();
             }
         };
 
@@ -655,6 +694,11 @@ export default function Player() {
         e.preventDefault();
         accumulatedDelta.current += e.deltaY;
 
+        // Clear previous wheel end timeout
+        if (wheelEndTimeout.current) {
+            clearTimeout(wheelEndTimeout.current);
+        }
+
         if (accumulatedDelta.current > 10) {
             goToNextSentence();
             accumulatedDelta.current = 0;
@@ -662,6 +706,11 @@ export default function Player() {
             goToPreviousSentence();
             accumulatedDelta.current = 0;
         }
+
+        // Resume playback after wheel stops
+        wheelEndTimeout.current = setTimeout(() => {
+            onScrollEnd();
+        }, 150);
     };
 
     // Sort voices with favorites first

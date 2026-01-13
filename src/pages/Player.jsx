@@ -58,7 +58,12 @@ export default function Player() {
     const speechRateRef = useRef(speechRate);
     const selectedVoiceRef = useRef(selectedVoice);
     const lastTouchY = useRef(null);
+    const lastTouchTime = useRef(null);
+    const velocity = useRef(0);
     const accumulatedDelta = useRef(0);
+    const momentumFrame = useRef(null);
+    const textAreaRef = useRef(null);
+    const saveTimeout = useRef(null);
 
     // Refs and inline styles for accurate popup positioning when rendered via portal
     const speedBtnRef = useRef(null);
@@ -155,6 +160,12 @@ export default function Player() {
         loadBook();
         return () => {
             TextToSpeech.stop().catch(() => { });
+            if (momentumFrame.current) {
+                cancelAnimationFrame(momentumFrame.current);
+            }
+            if (saveTimeout.current) {
+                clearTimeout(saveTimeout.current);
+            }
         };
     }, [id]);
 
@@ -504,78 +515,150 @@ export default function Player() {
         return Math.min(pos, text.length - 1);
     };
 
+    // Debounced save to storage (doesn't block UI)
+    const debouncedSave = (position) => {
+        if (saveTimeout.current) clearTimeout(saveTimeout.current);
+        saveTimeout.current = setTimeout(() => {
+            storage.books.update(id, { currentPosition: position });
+        }, 300);
+    };
+
     // Navigate to previous sentence
-    const goToPreviousSentence = async () => {
+    const goToPreviousSentence = () => {
         if (!book || currentSentenceStart === 0) return;
 
         const newPosition = findPreviousSentenceStart(book.text, currentSentenceStart);
 
         setCurrentPosition(newPosition);
         updateDisplayedText(book.text, newPosition);
-        storage.books.update(id, { currentPosition: newPosition });
-
-        if (isPlaying) {
-            await TextToSpeech.stop();
-            speakChunk(book.text, newPosition);
-        }
+        debouncedSave(newPosition);
     };
 
     // Navigate to next sentence
-    const goToNextSentence = async () => {
+    const goToNextSentence = () => {
         if (!book || currentSentenceEnd >= book.text.length) return;
 
         const newPosition = findNextSentenceStart(book.text, currentSentenceStart);
 
         setCurrentPosition(newPosition);
         updateDisplayedText(book.text, newPosition);
-        storage.books.update(id, { currentPosition: newPosition });
-
-        if (isPlaying) {
-            await TextToSpeech.stop();
-            speakChunk(book.text, newPosition);
-        }
+        debouncedSave(newPosition);
     };
 
     // Touch gesture handlers for sentence navigation
-    const SWIPE_THRESHOLD = 20; // pixels needed to trigger a sentence skip
+    const SWIPE_THRESHOLD = 8; // pixels needed to trigger a sentence skip
+    const MOMENTUM_FRICTION = 0.90; // friction applied each frame
+    const MOMENTUM_MIN_VELOCITY = 0.2; // minimum velocity to continue momentum
 
-    const handleTouchStart = (e) => {
-        lastTouchY.current = e.touches[0].clientY;
-        accumulatedDelta.current = 0;
-    };
+    // Store navigation functions in refs so touch handlers can access latest versions
+    const goToNextSentenceRef = useRef(null);
+    const goToPreviousSentenceRef = useRef(null);
+    goToNextSentenceRef.current = goToNextSentence;
+    goToPreviousSentenceRef.current = goToPreviousSentence;
 
-    const handleTouchMove = (e) => {
-        if (lastTouchY.current === null) return;
+    // Attach touch listeners with { passive: false } for Android compatibility
+    useEffect(() => {
+        const element = textAreaRef.current;
+        if (!element || !book) return;
 
-        const currentY = e.touches[0].clientY;
-        const delta = lastTouchY.current - currentY; // positive = swipe up
-        accumulatedDelta.current += delta;
-        lastTouchY.current = currentY;
+        const handleTouchStart = (e) => {
+            // Stop any ongoing momentum
+            if (momentumFrame.current) {
+                cancelAnimationFrame(momentumFrame.current);
+                momentumFrame.current = null;
+            }
 
-        // Check if we've accumulated enough movement to skip a sentence
-        if (accumulatedDelta.current > SWIPE_THRESHOLD) {
-            goToNextSentence();
+            lastTouchY.current = e.touches[0].clientY;
+            lastTouchTime.current = Date.now();
+            velocity.current = 0;
             accumulatedDelta.current = 0;
-        } else if (accumulatedDelta.current < -SWIPE_THRESHOLD) {
-            goToPreviousSentence();
-            accumulatedDelta.current = 0;
-        }
-    };
+        };
 
-    const handleTouchEnd = () => {
-        lastTouchY.current = null;
-        accumulatedDelta.current = 0;
-    };
+        const handleTouchMove = (e) => {
+            e.preventDefault(); // Prevent page scrolling
+            if (lastTouchY.current === null) return;
+
+            const currentY = e.touches[0].clientY;
+            const currentTime = Date.now();
+            const delta = lastTouchY.current - currentY; // positive = swipe up
+            const timeDelta = currentTime - lastTouchTime.current;
+
+            // Calculate velocity (pixels per millisecond)
+            if (timeDelta > 0) {
+                velocity.current = delta / timeDelta;
+            }
+
+            accumulatedDelta.current += delta;
+            lastTouchY.current = currentY;
+            lastTouchTime.current = currentTime;
+
+            // Check if we've accumulated enough movement to skip a sentence
+            if (accumulatedDelta.current > SWIPE_THRESHOLD) {
+                goToNextSentenceRef.current?.();
+                accumulatedDelta.current = 0;
+            } else if (accumulatedDelta.current < -SWIPE_THRESHOLD) {
+                goToPreviousSentenceRef.current?.();
+                accumulatedDelta.current = 0;
+            }
+        };
+
+        const handleTouchEnd = () => {
+            const finalVelocity = velocity.current;
+            lastTouchY.current = null;
+            lastTouchTime.current = null;
+            accumulatedDelta.current = 0;
+
+            // Start momentum scrolling if velocity is significant
+            if (Math.abs(finalVelocity) > 0.08) {
+                let currentVelocity = finalVelocity * 25; // Scale up for smoother feel
+                let momentumDelta = 0;
+
+                const momentumLoop = () => {
+                    momentumDelta += currentVelocity;
+                    currentVelocity *= MOMENTUM_FRICTION;
+
+                    // Skip sentences based on accumulated momentum
+                    if (momentumDelta > SWIPE_THRESHOLD) {
+                        goToNextSentenceRef.current?.();
+                        momentumDelta = 0;
+                    } else if (momentumDelta < -SWIPE_THRESHOLD) {
+                        goToPreviousSentenceRef.current?.();
+                        momentumDelta = 0;
+                    }
+
+                    // Continue if velocity is still significant
+                    if (Math.abs(currentVelocity) > MOMENTUM_MIN_VELOCITY) {
+                        momentumFrame.current = requestAnimationFrame(momentumLoop);
+                    } else {
+                        momentumFrame.current = null;
+                    }
+                };
+
+                momentumFrame.current = requestAnimationFrame(momentumLoop);
+            }
+        };
+
+        // Add listeners with { passive: false } to allow preventDefault on Android
+        element.addEventListener('touchstart', handleTouchStart, { passive: true });
+        element.addEventListener('touchmove', handleTouchMove, { passive: false });
+        element.addEventListener('touchend', handleTouchEnd, { passive: true });
+
+        return () => {
+            element.removeEventListener('touchstart', handleTouchStart);
+            element.removeEventListener('touchmove', handleTouchMove);
+            element.removeEventListener('touchend', handleTouchEnd);
+        };
+    }, [book]);
 
     // Mouse wheel handler for desktop
     const handleWheel = (e) => {
         e.preventDefault();
         accumulatedDelta.current += e.deltaY;
 
-        if (accumulatedDelta.current > 15) {
+        if (accumulatedDelta.current > 10) {
             goToNextSentence();
             accumulatedDelta.current = 0;
-        } else if (accumulatedDelta.current < -15) {
+        } else if (accumulatedDelta.current < -10) {
             goToPreviousSentence();
             accumulatedDelta.current = 0;
         }
@@ -633,11 +716,9 @@ export default function Player() {
 
             {/* Continuous Scroll Text Display */}
             <div
+                ref={textAreaRef}
                 className="flex-1 mt-[64px] mb-[170px] overflow-hidden relative"
-                style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
-                onTouchStart={handleTouchStart}
-                onTouchMove={handleTouchMove}
-                onTouchEnd={handleTouchEnd}
+                style={{ paddingBottom: 'env(safe-area-inset-bottom)', touchAction: 'none' }}
                 onWheel={handleWheel}
             >
                 <div className="h-full flex flex-col justify-center px-6 py-4 sm:py-2 overflow-hidden">
